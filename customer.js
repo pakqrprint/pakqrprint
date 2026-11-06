@@ -122,7 +122,7 @@ function renderFiles() {
     var d = document.createElement('div'); d.className = 'fileitem';
     var h = '<div class="fname">' + esc(it.file.name) + '</div><div>' + esc(it.kind.toUpperCase()) + ' • ' + (it.file.size / 1024).toFixed(1) + ' KB • Pages: ';
     h += '<input type="number" min="1" value="' + it.pages + '" data-pg="' + idx + '" style="width:64px"> ';
-    h += it.pagesAuto ? '(khud gine gaye)' : '(aap ne likhe)';
+    h += it.pagesAuto ? '(auto-counted)' : '(you entered)';
     h += '</div>';
     if (rangeEligible(it)) {
       h += '<div class="frow"><label>Pages:</label><select data-rm="' + idx + '">'
@@ -146,7 +146,7 @@ function renderFiles() {
   box.querySelectorAll('[data-nup]').forEach(function (el) { el.addEventListener('change', function () { selFiles[+el.getAttribute('data-nup')].nup = parseInt(el.value, 10) || 1; }); });
   box.querySelectorAll('[data-spp]').forEach(function (el) { el.addEventListener('change', function () { selFiles[+el.getAttribute('data-spp')].spp = parseInt(el.value, 10) || 1; }); });
   box.querySelectorAll('[data-rm]').forEach(function (el) { el.addEventListener('change', function () { var it = selFiles[+el.getAttribute('data-rm')]; it.rangeMode = el.value; it.range = ''; it.rangePages = 0; renderFiles(); }); });
-  box.querySelectorAll('[data-rg]').forEach(function (el) { el.addEventListener('change', function () { var it = selFiles[+el.getAttribute('data-rg')]; var r = parseRange(el.value, it.pages); if (r) { it.range = el.value; it.rangePages = r.count; } else { it.range = ''; it.rangePages = 0; el.value = ''; alert('Range theek nahi hai - masalan 2-5 likhein, kul pages ' + it.pages + ' hain.'); } }); });
+  box.querySelectorAll('[data-rg]').forEach(function (el) { el.addEventListener('change', function () { var it = selFiles[+el.getAttribute('data-rg')]; var r = parseRange(el.value, it.pages); if (r) { it.range = el.value; it.rangePages = r.count; } else { it.range = ''; it.rangePages = 0; el.value = ''; alert('Range is not correct - for example write 2-5, total pages are ' + it.pages + '.'); } }); });
   box.querySelectorAll('[data-x]').forEach(function (el) { el.addEventListener('click', function () { selFiles.splice(+el.getAttribute('data-x'), 1); renderFiles(); }); });
   $('sendBtn').disabled = selFiles.length === 0;
 }
@@ -154,8 +154,8 @@ function renderFiles() {
 function addFiles(list) {
   var arr = Array.prototype.slice.call(list || []);
   arr.forEach(function (f) {
-    if (f.size > MAX_MB * 1024 * 1024) { alert(f.name + ' ' + MAX_MB + 'MB se bara hai - chhoti file bhejein.'); return; }
-    if (!/\.(pdf|jpe?g|png|docx?|xlsx?|pptx?)$/i.test(f.name)) { alert(f.name + ' - ye file type support nahi hai. PDF, Word, Excel, PowerPoint, JPG, PNG bhejein.'); return; }
+    if (f.size > MAX_MB * 1024 * 1024) { alert(f.name + ' is larger than ' + MAX_MB + 'MB - please send a smaller file.'); return; }
+    if (!/\.(pdf|jpe?g|png|docx?|xlsx?|pptx?)$/i.test(f.name)) { alert(f.name + ' - this file type is not supported. Send PDF, Word, Excel, PowerPoint, JPG, PNG.'); return; }
     var kind = fileKind(f);
     var it = { file: f, kind: kind, pages: 1, pagesAuto: false, copies: (parseInt(($('copiesInput') || {}).value, 10) || 1), rangeMode: 'all', range: '', rangePages: 0, nup: 1, spp: 1 };
     selFiles.push(it);
@@ -173,7 +173,7 @@ function loadIdImage(file) {
   return new Promise(function (res, rej) {
     var u = URL.createObjectURL(file); var im = new Image();
     im.onload = function () { URL.revokeObjectURL(u); res(im); };
-    im.onerror = function () { URL.revokeObjectURL(u); rej(new Error('image nahi khuli')); };
+    im.onerror = function () { URL.revokeObjectURL(u); rej(new Error('image did not open')); };
     im.src = u;
   });
 }
@@ -209,11 +209,11 @@ function drawIdCard(front, back, type, layout) {
 // ---------- Firebase (queue + login) + Supabase (files) ----------
 function initFirebase() {
   if (!CONFIG_OK) {
-    showErr('Setup baaki hai: firebase-config.js mein apni Firebase config abhi bhari nahi gayi. Hidayat file (Pak-QR-Print-Hidayat-v2-Supabase.txt) ke Step 2 ke mutabiq config paste karein, phir page dobara kholein.');
+    showErr('Setup is pending: your Firebase config is not filled in firebase-config.js yet. Paste the config as per Step 2 of the guide file (Pak-QR-Print-Hidayat-v3.txt), then reopen the page.');
     return false;
   }
   if (!SUPABASE_OK) {
-    showErr('Setup baaki hai: supabase-config.js mein Supabase ki config abhi bhari nahi gayi. Hidayat file ke Step 2 ke mutabiq config paste karein, phir page dobara kholein.');
+    showErr('Setup is pending: the Supabase config is not filled in supabase-config.js yet. Paste the config as per Step 2 of the guide file, then reopen the page.');
     return false;
   }
   try {
@@ -221,7 +221,7 @@ function initFirebase() {
     db = firebase.database();
     return true;
   } catch (e) {
-    showErr('Firebase shuru nahi hua: ' + e.message);
+    showErr('Firebase did not start: ' + e.message);
     return false;
   }
 }
@@ -248,7 +248,7 @@ function confetti() {
 
 function sendOrder() {
   if (!selFiles.length) return;
-  var btn = $('sendBtn'); btn.disabled = true; btn.textContent = 'Bhej rahe hain...';
+  var btn = $('sendBtn'); btn.disabled = true; btn.textContent = 'Sending...';
   var name = ($('custName').value || '').trim();
   var colorMode = (document.querySelector('input[name="printType"]:checked') || {}).value || 'BW';
   var paperSize = ($('paperSel') && $('paperSel').value) || 'a4';
@@ -274,14 +274,14 @@ function sendOrder() {
     $('tokenNo').textContent = orderNo;
     confetti();
   }).catch(function (e) {
-    alert('Order nahi bheja ja saka: ' + (e && e.message ? e.message : e) + '\nInternet check karein aur dobara try karein.');
+    alert('Order could not be sent: ' + (e && e.message ? e.message : e) + '\nCheck the internet and try again.');
     btn.disabled = false; btn.textContent = 'Send Files to Shopkeeper';
   });
 }
 
 function sendIdOrder() {
-  if (!idCompositeReady || !idCompositeBlob) { $('idMsg').textContent = 'Pehle "ID Card A4 Composite Banayein" dabayein.'; return; }
-  var btn = $('idSendBtn'); btn.disabled = true; btn.textContent = 'Bhej rahe hain...';
+  if (!idCompositeReady || !idCompositeBlob) { $('idMsg').textContent = 'First tap "Make ID Card A4 Composite".'; return; }
+  var btn = $('idSendBtn'); btn.disabled = true; btn.textContent = 'Sending...';
   var name = ($('custName').value || '').trim();
   var type = $('idType').value;
   var orderKey = db.ref('shops/' + SHOP_ID + '/orders').push().key;
@@ -301,7 +301,7 @@ function sendIdOrder() {
     $('tokenNo').textContent = orderNo;
     confetti();
   }).catch(function (e) {
-    alert('ID Card nahi bheja ja saka: ' + (e && e.message ? e.message : e));
+    alert('ID Card could not be sent: ' + (e && e.message ? e.message : e));
     btn.disabled = false; btn.textContent = 'Send ID Card to Shop';
   });
 }
@@ -357,13 +357,13 @@ document.addEventListener('DOMContentLoaded', function () {
     var msg = $('idMsg');
     var f = $('idFront').files && $('idFront').files[0];
     var bk = $('idBack').files && $('idBack').files[0];
-    if (!f || !bk) { msg.textContent = 'Front aur back dono ki photo choose karein.'; return; }
-    msg.textContent = 'Composite ban raha hai...';
+    if (!f || !bk) { msg.textContent = 'Choose photos of both the front and back.'; return; }
+    msg.textContent = 'Making composite...';
     Promise.all([loadIdImage(f), loadIdImage(bk)]).then(function (ims) {
       drawIdCard(ims[0], ims[1], $('idType').value, idLayout);
       $('idCardCanvas').style.display = 'block';
-      $('idCardCanvas').toBlob(function (blob) { idCompositeBlob = blob; idCompositeReady = true; msg.textContent = 'A4 Composite tayyar hai — upar preview dekhein, phir "Send ID Card to Shop" dabayein.'; }, 'image/jpeg', 0.92);
-    }).catch(function () { msg.textContent = 'Photo nahi khuli — doosri photo try karein.'; });
+      $('idCardCanvas').toBlob(function (blob) { idCompositeBlob = blob; idCompositeReady = true; msg.textContent = 'A4 Composite is ready — see the preview above, then tap "Send ID Card to Shop".'; }, 'image/jpeg', 0.92);
+    }).catch(function () { msg.textContent = 'Photo did not open — try another photo.'; });
   });
   $('idSendBtn').addEventListener('click', sendIdOrder);
   $('againBtn').addEventListener('click', function () { location.reload(); });

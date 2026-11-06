@@ -98,7 +98,7 @@ function renderQueue() {
   box.querySelectorAll('[data-pr]').forEach(function (b) { b.addEventListener('click', function () { directPrint(b.getAttribute('data-pr'), b); }); });
   box.querySelectorAll('[data-vw]').forEach(function (b) { b.addEventListener('click', function () { var o = orders[b.getAttribute('data-vw')]; if (o && o.files && o.files[0] && o.files[0].downloadURL) window.open(o.files[0].downloadURL, '_blank'); }); });
   box.querySelectorAll('[data-done]').forEach(function (b) { b.addEventListener('click', function () { ordersRef().child(b.getAttribute('data-done')).update({ status: 'Done' }); }); });
-  box.querySelectorAll('[data-del]').forEach(function (b) { b.addEventListener('click', function () { if (confirm('Ye order delete kar dein?')) deleteOrder(b.getAttribute('data-del')); }); });
+  box.querySelectorAll('[data-del]').forEach(function (b) { b.addEventListener('click', function () { if (confirm('Delete this order?')) deleteOrder(b.getAttribute('data-del')); }); });
   renderStats();
 }
 function deleteOrder(key) {
@@ -111,8 +111,8 @@ function deleteOrder(key) {
 function directPrint(key, btn) {
   if (btn) { btn.disabled = true; btn.textContent = 'Printing...'; }
   ordersRef().child(key).update({ status: 'PrintRequested', printRequestedAt: firebase.database.ServerValue.TIMESTAMP }).then(function () {
-    alert('Print bhej diya gaya hai — dukaan ke PC par print agent is ko print karega. (PC on + internet + printer hona lazmi hai.)');
-  }).catch(function (e) { alert('Print nahi bheja ja saka: ' + e.message); if (btn) { btn.disabled = false; btn.textContent = 'Direct Print'; } });
+    alert('Print has been sent — the print agent on the shop PC will print it. (The PC must be on, with internet and a printer connected.)');
+  }).catch(function (e) { alert('Print could not be sent: ' + e.message); if (btn) { btn.disabled = false; btn.textContent = 'Direct Print'; } });
 }
 
 // ---------- A4 preview modal ----------
@@ -122,15 +122,15 @@ function openA4Modal(o) {
   a4Order = o; a4Zoom = 1; a4Rot = 0;
   $('a4Title').textContent = (o.customerName || 'Walk-in') + ' — Token ' + (o.token || o.orderNo || '');
   $('a4Meta').textContent = 'Copies ' + (o.files && o.files[0] ? (o.files[0].copies || 1) : 1) + ' • Color Mode ' + (o.colorMode || 'BW') + ' • A4 Printable Layout Preview (210×297 mm)';
-  var box = $('a4Content'); box.innerHTML = '<p class="hint">Preview load ho raha hai...</p>';
+  var box = $('a4Content'); box.innerHTML = '<p class="hint">Loading preview...</p>';
   $('a4Modal').style.display = 'block';
   var f = (o.files && o.files[0]) || null;
-  if (!f || !f.downloadURL) { box.innerHTML = '<p class="hint">Is order ki file ka preview nahi hai.</p>'; return; }
+  if (!f || !f.downloadURL) { box.innerHTML = '<p class="hint">No preview is available for this order file.</p>'; return; }
   a4ViewUrl = f.downloadURL;
   if (f.kind === 'image' || f.kind === 'idcard' || /\.(jpe?g|png)$/i.test(f.name || '')) {
     box.innerHTML = '<img src="' + esc(f.downloadURL) + '" alt="preview">';
   } else if (f.kind === 'pdf' || /\.pdf$/i.test(f.name || '')) {
-    box.innerHTML = '<p class="hint">PDF ka pehla page render ho raha hai...</p>';
+    box.innerHTML = '<p class="hint">Rendering the first page of the PDF...</p>';
     import('./pdfjs/pdf.mjs').then(function (pdfjsLib) {
       pdfjsLib.GlobalWorkerOptions.workerSrc = './pdfjs/pdf.worker.mjs';
       return pdfjsLib.getDocument({ url: f.downloadURL }).promise;
@@ -140,9 +140,9 @@ function openA4Modal(o) {
       cv.width = vp.width; cv.height = vp.height;
       box.innerHTML = ''; box.appendChild(cv);
       return page.render({ canvasContext: cv.getContext('2d'), viewport: vp }).promise;
-    }).catch(function () { box.innerHTML = '<p class="hint">PDF preview nahi khula — "View File" se file kholein.</p>'; });
+    }).catch(function () { box.innerHTML = '<p class="hint">PDF preview did not open — open the file with "View File".</p>'; });
   } else {
-    box.innerHTML = '<p class="hint">' + esc(f.name) + ' (' + esc((f.kind || '').toUpperCase()) + ') — is file ka browser preview nahi hai. "View File" se file kholein ya "Direct Print" se print karein.</p>';
+    box.innerHTML = '<p class="hint">' + esc(f.name) + ' (' + esc((f.kind || '').toUpperCase()) + ') — there is no browser preview for this file. Open it with "View File" or print it with "Direct Print".</p>';
   }
   applyA4Transform();
 }
@@ -153,7 +153,7 @@ function openQrModal() {
   $('qrShopName').textContent = settings.shopName || 'Pak QR Print';
   var ok = false;
   try { ok = drawQRToCanvas($('qrModalCanvas'), customerUrl()); } catch (e) { ok = false; }
-  if (!ok) { $('qrShopName').textContent = 'QR nahi ban saka — link check karein.'; }
+  if (!ok) { $('qrShopName').textContent = 'QR could not be made — check the link.'; }
   $('qrModal').style.display = 'flex';
 }
 function closeQrModal() { $('qrModal').style.display = 'none'; }
@@ -176,7 +176,7 @@ function saveSettings() {
   settingsRef().update({
     shopName: ($('setShopName').value || 'Pak QR Print').trim(),
     printerName: ($('setPrinter').value || '').trim()
-  }).then(function () { alert('Settings save ho gayi hain.'); }).catch(function (e) { alert('Settings save nahi hui: ' + e.message); });
+  }).then(function () { alert('Settings have been saved.'); }).catch(function (e) { alert('Settings could not be saved: ' + e.message); });
 }
 
 // ---------- auto-delete sweep ----------
@@ -209,7 +209,7 @@ function directUpload(files) {
   }).then(function (res) {
     var n = res.snapshot.val() || 1001;
     return ordersRef().child(orderKey).set({ orderNo: 'QP-' + n, token: 'QP-' + n, customerName: 'Walk-in', createdAt: firebase.database.ServerValue.TIMESTAMP, status: 'New', colorMode: 'BW', copies: 1, source: 'walkin', files: savedFiles, printLog: [] });
-  }).then(function () { alert('Walk-in order queue mein aa gaya hai.'); }).catch(function (e) { alert('Upload nahi hua: ' + e.message); });
+  }).then(function () { alert('Walk-in order has been added to the queue.'); }).catch(function (e) { alert('Upload failed: ' + e.message); });
 }
 
 // ---------- init ----------
@@ -236,17 +236,17 @@ function startDashboard() {
 }
 
 document.addEventListener('DOMContentLoaded', function () {
-  if (!CONFIG_OK) { showErr('Setup baaki hai: firebase-config.js mein apni Firebase config abhi bhari nahi gayi. Hidayat file (Pak-QR-Print-Hidayat-v2-Supabase.txt) ke Step 2 ke mutabiq config paste karein.'); return; }
-  if (!SUPABASE_OK) { showErr('Setup baaki hai: supabase-config.js mein Supabase ki config abhi bhari nahi gayi. Hidayat file ke Step 2 ke mutabiq config paste karein.'); return; }
+  if (!CONFIG_OK) { showErr('Setup is pending: your Firebase config is not filled in firebase-config.js yet. Paste the config as per Step 2 of the guide file (Pak-QR-Print-Hidayat-v3.txt).'); return; }
+  if (!SUPABASE_OK) { showErr('Setup is pending: the Supabase config is not filled in supabase-config.js yet. Paste the config as per Step 2 of the guide file.'); return; }
   try {
     firebase.initializeApp(cfg);
     db = firebase.database();
     auth = firebase.auth();
-  } catch (e) { showErr('Firebase shuru nahi hua: ' + e.message); return; }
+  } catch (e) { showErr('Firebase did not start: ' + e.message); return; }
   $('loginBtn').addEventListener('click', function () {
     var em = $('loginEmail').value.trim(), pw = $('loginPass').value;
-    $('loginMsg').textContent = 'Login ho raha hai...';
-    auth.signInWithEmailAndPassword(em, pw).then(function () { startDashboard(); }).catch(function (e) { $('loginMsg').textContent = 'Login nahi hua: ' + e.message; });
+    $('loginMsg').textContent = 'Logging in...';
+    auth.signInWithEmailAndPassword(em, pw).then(function () { startDashboard(); }).catch(function (e) { $('loginMsg').textContent = 'Login failed: ' + e.message; });
   });
   // Shopkeeper Portal tabs
   document.querySelectorAll('#portalTabs button').forEach(function (b) {
@@ -262,19 +262,19 @@ document.addEventListener('DOMContentLoaded', function () {
   $('createBtn').addEventListener('click', function () {
     var em = $('createEmail').value.trim(), pw = $('createPass').value;
     var shop = $('createShop').value.trim();
-    if (!em || pw.length < 6) { $('createMsg').textContent = 'Email likhein aur password kam se kam 6 harf ka ho.'; return; }
-    $('createMsg').textContent = 'Account ban raha hai...';
+    if (!em || pw.length < 6) { $('createMsg').textContent = 'Enter an email and a password of at least 6 characters.'; return; }
+    $('createMsg').textContent = 'Creating account...';
     auth.createUserWithEmailAndPassword(em, pw).then(function () {
       if (shop) settingsRef().update({ shopName: shop }).catch(function () { /* shop name save na ho to bhi account ban gaya */ });
       startDashboard();
-    }).catch(function (e) { $('createMsg').textContent = 'Account nahi bana: ' + e.message; });
+    }).catch(function (e) { $('createMsg').textContent = 'Account could not be created: ' + e.message; });
   });
   auth.onAuthStateChanged(function (u) { if (u) startDashboard(); });
   $('logoutBtn').addEventListener('click', function () { auth.signOut().then(function () { location.reload(); }); });
   $('copyLinkBtn').addEventListener('click', function () {
     var u = customerUrl();
-    if (navigator.clipboard) navigator.clipboard.writeText(u).then(function () { alert('Customer link copy ho gaya:\n' + u); });
-    else prompt('Customer link copy karein:', u);
+    if (navigator.clipboard) navigator.clipboard.writeText(u).then(function () { alert('Customer link copied:\n' + u); });
+    else prompt('Copy customer link:', u);
   });
   $('qrBtn').addEventListener('click', function () { openQrModal(); });
   $('qrCloseBtn').addEventListener('click', closeQrModal);
@@ -291,7 +291,7 @@ document.addEventListener('DOMContentLoaded', function () {
   $('duInput').addEventListener('change', function () { directUpload($('duInput').files); $('duInput').value = ''; });
   $('duBtn').addEventListener('click', function () { $('duInput').click(); });
   $('clearBtn').addEventListener('click', function () {
-    if (!confirm('Saare Printed / Done / Cancelled orders delete kar dein?')) return;
+    if (!confirm('Delete all Printed / Done / Cancelled orders?')) return;
     Object.keys(orders).forEach(function (k) { var o = orders[k]; if (o.status === 'Printed' || o.status === 'Done' || o.status === 'Cancelled') deleteOrder(k); });
   });
   $('refreshBtn').addEventListener('click', function () { renderQueue(); });

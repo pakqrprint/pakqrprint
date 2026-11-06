@@ -147,9 +147,9 @@
   document.getElementById('posterUrl').textContent = url;
   var done = false;
   try { done = drawQRToCanvas(document.getElementById('qrCanvas'), url); } catch (e) { done = false; }
-  document.getElementById('qrNote').textContent = done ? 'QR tayyar hai — phone camera se scan karke test kar lein.' : 'QR nahi ban saka — link bahut lamba hai ya customer URL theek nahi hai.';
+  document.getElementById('qrNote').textContent = done ? 'QR is ready — scan it with your phone camera to test.' : 'QR could not be made — the link is too long or the customer URL is not correct.';
   if (!ok) {
-    document.getElementById('posterMsg').textContent = 'Note: firebase-config.js abhi bhari nahi gayi — dukaan ka naam default dikh raha hai. Hidayat ke mutabiq config bharein to naam khud aa jayega.';
+    document.getElementById('posterMsg').textContent = 'Note: firebase-config.js is not filled yet — the shop name is showing as default. Fill the config as per the guide and the name will appear.';
   } else {
     try {
       firebase.initializeApp(cfg);
