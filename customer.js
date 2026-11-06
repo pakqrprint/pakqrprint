@@ -1,5 +1,5 @@
-// Pak QR Print - Customer page (GitHub Pages + Firebase)
-// Files seedha Firebase Storage par jati hain, order Realtime
+// Pak QR Print - Customer page (GitHub Pages + Firebase + Supabase)
+// Files seedha Supabase Storage par jati hain, order Realtime
 // Database mein likha jata hai. Dukaan ka PC (print agent) wahan
 // se uthakar print karta hai. Koi file is PC/server par nahi rehti.
 (function () {
@@ -11,6 +11,8 @@ function showOk(msg) { var e = $('setupOk'); e.textContent = msg; e.style.displa
 
 var cfg = window.PAKQR_FIREBASE_CONFIG || {};
 var CONFIG_OK = cfg.apiKey && cfg.apiKey.indexOf('YAHAN-') !== 0 && cfg.databaseURL && cfg.databaseURL.indexOf('YAHAN-') !== 0;
+var sbcfg = window.PAKQR_SUPABASE_CONFIG || {};
+var SUPABASE_OK = sbcfg.url && sbcfg.url.indexOf('YAHAN-') !== 0 && sbcfg.anonKey && sbcfg.anonKey.indexOf('YAHAN-') !== 0 && sbcfg.bucket;
 var SHOP_ID = 'pakqrprint';
 try {
   var m = /[?&]shop=([A-Za-z0-9_-]+)/.exec(location.search);
@@ -20,7 +22,7 @@ try {
 
 var DEFAULT_SETTINGS = { shopName: 'Pak QR Print', autoPrint: true, autoOpen: true, permissionMode: false, autoDeleteMinutes: 5 };
 var settings = DEFAULT_SETTINGS;
-var db = null, storage = null;
+var db = null;
 var selFiles = []; // {file, kind, pages, pagesAuto, copies, rangeMode, range, rangePages, nup, spp}
 var idLayout = 'stacked';
 var idCompositeReady = false, idCompositeBlob = null;
@@ -29,6 +31,30 @@ var MAX_MB = 25;
 function customerUrl() {
   if (window.PAKQR_CUSTOMER_URL) return window.PAKQR_CUSTOMER_URL.replace(/\/$/, '') + '/index.html?shop=' + SHOP_ID;
   return location.origin + location.pathname.replace(/[^\/]*$/, '') + 'index.html?shop=' + SHOP_ID;
+}
+
+// ---------- Supabase Storage (plain REST, koi CDN library nahi) ----------
+// Upload: POST /storage/v1/object/<bucket>/<path> (anon key se).
+// Public URL: <url>/storage/v1/object/public/<bucket>/<path>.
+// Agar upload fail ho to error throw hota hai — order tab tak Realtime
+// Database mein likha hi nahi jata, is liye order kabhi gum nahi hota.
+function supabaseUpload(file, objectPath) {
+  var base = String(sbcfg.url).replace(/\/$/, '');
+  var encPath = objectPath.split('/').map(encodeURIComponent).join('/');
+  var url = base + '/storage/v1/object/' + encodeURIComponent(sbcfg.bucket) + '/' + encPath;
+  return fetch(url, {
+    method: 'POST',
+    headers: {
+      'apikey': sbcfg.anonKey,
+      'Authorization': 'Bearer ' + sbcfg.anonKey,
+      'Content-Type': file.type || 'application/octet-stream',
+      'x-upsert': 'true'
+    },
+    body: file
+  }).then(function (res) {
+    if (!res.ok) return res.text().then(function (t) { throw new Error('Supabase upload fail (HTTP ' + res.status + '): ' + String(t || '').slice(0, 200)); });
+    return base + '/storage/v1/object/public/' + encodeURIComponent(sbcfg.bucket) + '/' + encPath;
+  });
 }
 
 // ---------- PDF pages (binary scan, v1 jaisa) ----------
@@ -180,16 +206,19 @@ function drawIdCard(front, back, type, layout) {
   }
 }
 
-// ---------- Firebase ----------
+// ---------- Firebase (queue + login) + Supabase (files) ----------
 function initFirebase() {
   if (!CONFIG_OK) {
-    showErr('Setup baaki hai: firebase-config.js mein apni Firebase config abhi bhari nahi gayi. Hidayat file (Pak-QR-Print-GitHub-Hidayat.txt) ke Step 2 ke mutabiq config paste karein, phir page dobara kholein.');
+    showErr('Setup baaki hai: firebase-config.js mein apni Firebase config abhi bhari nahi gayi. Hidayat file (Pak-QR-Print-Hidayat-v2-Supabase.txt) ke Step 2 ke mutabiq config paste karein, phir page dobara kholein.');
+    return false;
+  }
+  if (!SUPABASE_OK) {
+    showErr('Setup baaki hai: supabase-config.js mein Supabase ki config abhi bhari nahi gayi. Hidayat file ke Step 2 ke mutabiq config paste karein, phir page dobara kholein.');
     return false;
   }
   try {
     firebase.initializeApp(cfg);
     db = firebase.database();
-    storage = firebase.storage();
     return true;
   } catch (e) {
     showErr('Firebase shuru nahi hua: ' + e.message);
@@ -226,9 +255,9 @@ function sendOrder() {
   var orderKey = db.ref('shops/' + SHOP_ID + '/orders').push().key;
   var uploads = selFiles.map(function (it, idx) {
     var safeName = String(it.file.name).replace(/[^\w.\-() ]/g, '_');
-    var ref = storage.ref('shops/' + SHOP_ID + '/orders/' + orderKey + '/' + idx + '_' + safeName);
-    return ref.put(it.file).then(function (snap) { return snap.ref.getDownloadURL(); }).then(function (url) {
-      return { name: it.file.name, kind: it.kind, size: it.file.size, pages: it.pages, copies: it.copies || 1, colorMode: colorMode, rangeMode: it.rangeMode, range: it.range || '', nup: it.nup || 1, spp: it.spp || 1, paperSize: paperSize, downloadURL: url, storagePath: ref.fullPath };
+    var objectPath = 'shops/' + SHOP_ID + '/orders/' + orderKey + '/' + idx + '_' + safeName;
+    return supabaseUpload(it.file, objectPath).then(function (url) {
+      return { name: it.file.name, kind: it.kind, size: it.file.size, pages: it.pages, copies: it.copies || 1, colorMode: colorMode, rangeMode: it.rangeMode, range: it.range || '', nup: it.nup || 1, spp: it.spp || 1, paperSize: paperSize, downloadURL: url, storagePath: objectPath };
     });
   });
   Promise.all(uploads).then(function (files) {
@@ -257,13 +286,13 @@ function sendIdOrder() {
   var type = $('idType').value;
   var orderKey = db.ref('shops/' + SHOP_ID + '/orders').push().key;
   var file = new File([idCompositeBlob], 'ID_Card_A4_Composite.jpg', { type: 'image/jpeg' });
-  var ref = storage.ref('shops/' + SHOP_ID + '/orders/' + orderKey + '/ID_Card_A4_Composite.jpg');
-  ref.put(file).then(function (snap) { return snap.ref.getDownloadURL(); }).then(function (url) {
+  var objectPath = 'shops/' + SHOP_ID + '/orders/' + orderKey + '/ID_Card_A4_Composite.jpg';
+  supabaseUpload(file, objectPath).then(function (url) {
     var counterRef = db.ref('shops/' + SHOP_ID + '/counter');
     return counterRef.transaction(function (cur) { return (cur || 1000) + 1; }).then(function (res) {
       var n = res.snapshot.val() || 1001;
       var orderNo = 'QP-' + n;
-      var order = { orderNo: orderNo, token: orderNo, customerName: name || 'Walk-in', createdAt: firebase.database.ServerValue.TIMESTAMP, status: 'New', colorMode: 'Color', copies: 1, paperSize: 'a4', source: 'idcard', idType: type, idLayout: idLayout, files: [{ name: 'ID_Card_A4_Composite.jpg', kind: 'idcard', size: file.size, pages: 1, copies: 1, colorMode: 'Color', rangeMode: 'all', range: '', nup: 1, spp: 1, paperSize: 'a4', downloadURL: url, storagePath: ref.fullPath }], printLog: [] };
+      var order = { orderNo: orderNo, token: orderNo, customerName: name || 'Walk-in', createdAt: firebase.database.ServerValue.TIMESTAMP, status: 'New', colorMode: 'Color', copies: 1, paperSize: 'a4', source: 'idcard', idType: type, idLayout: idLayout, files: [{ name: 'ID_Card_A4_Composite.jpg', kind: 'idcard', size: file.size, pages: 1, copies: 1, colorMode: 'Color', rangeMode: 'all', range: '', nup: 1, spp: 1, paperSize: 'a4', downloadURL: url, storagePath: objectPath }], printLog: [] };
       return db.ref('shops/' + SHOP_ID + '/orders/' + orderKey).set(order).then(function () { return orderNo; });
     });
   }).then(function (orderNo) {

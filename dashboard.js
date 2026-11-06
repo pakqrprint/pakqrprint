@@ -10,10 +10,12 @@ function showErr(msg) { var e = $('setupErr'); e.textContent = msg; e.style.disp
 
 var cfg = window.PAKQR_FIREBASE_CONFIG || {};
 var CONFIG_OK = cfg.apiKey && cfg.apiKey.indexOf('YAHAN-') !== 0 && cfg.databaseURL && cfg.databaseURL.indexOf('YAHAN-') !== 0;
+var sbcfg = window.PAKQR_SUPABASE_CONFIG || {};
+var SUPABASE_OK = sbcfg.url && sbcfg.url.indexOf('YAHAN-') !== 0 && sbcfg.anonKey && sbcfg.anonKey.indexOf('YAHAN-') !== 0 && sbcfg.bucket;
 var SHOP_ID = window.PAKQR_SHOP_ID || 'pakqrprint';
 var DEFAULT_SETTINGS = { shopName: 'Pak QR Print', autoPrint: true, autoOpen: true, permissionMode: false, autoDeleteMinutes: 5, printerName: '' };
 var settings = DEFAULT_SETTINGS;
-var db = null, storage = null, auth = null;
+var db = null, auth = null;
 var orders = {}; // key -> order
 var seenKeys = {};
 var loadTime = Date.now();
@@ -22,6 +24,31 @@ var a4Order = null, a4Zoom = 1, a4Rot = 0, a4ViewUrl = '';
 function customerUrl() {
   if (window.PAKQR_CUSTOMER_URL) return window.PAKQR_CUSTOMER_URL.replace(/\/$/, '') + '/index.html?shop=' + SHOP_ID;
   return location.origin + location.pathname.replace(/[^\/]*$/, '') + 'index.html?shop=' + SHOP_ID;
+}
+
+// ---------- Supabase Storage (plain REST, koi CDN library nahi) ----------
+// Upload: POST /storage/v1/object/<bucket>/<path> (anon key se).
+// Public URL: <url>/storage/v1/object/public/<bucket>/<path>.
+// NOTE: bucket ki policy mein anon ke liye sirf INSERT + SELECT hai,
+// DELETE nahi — is liye order delete hone par file bucket mein rehti
+// hai. Purani files Supabase dashboard se waqt par saaf karni hongi.
+function supabaseUpload(file, objectPath) {
+  var base = String(sbcfg.url).replace(/\/$/, '');
+  var encPath = objectPath.split('/').map(encodeURIComponent).join('/');
+  var url = base + '/storage/v1/object/' + encodeURIComponent(sbcfg.bucket) + '/' + encPath;
+  return fetch(url, {
+    method: 'POST',
+    headers: {
+      'apikey': sbcfg.anonKey,
+      'Authorization': 'Bearer ' + sbcfg.anonKey,
+      'Content-Type': file.type || 'application/octet-stream',
+      'x-upsert': 'true'
+    },
+    body: file
+  }).then(function (res) {
+    if (!res.ok) return res.text().then(function (t) { throw new Error('Supabase upload fail (HTTP ' + res.status + '): ' + String(t || '').slice(0, 200)); });
+    return base + '/storage/v1/object/public/' + encodeURIComponent(sbcfg.bucket) + '/' + encPath;
+  });
 }
 function ordersRef() { return db.ref('shops/' + SHOP_ID + '/orders'); }
 function settingsRef() { return db.ref('shops/' + SHOP_ID + '/settings'); }
@@ -75,9 +102,11 @@ function renderQueue() {
   renderStats();
 }
 function deleteOrder(key) {
-  var o = orders[key];
+  // Sirf order (Realtime Database se) delete hota hai. File Supabase
+  // bucket mein rehti hai — anon policy mein DELETE nahi hai, is liye
+  // dashboard ya print agent us ko delete nahi kar sakta. Purani files
+  // Supabase dashboard (Storage > pakqrprint-files) se saaf karein.
   ordersRef().child(key).remove();
-  if (o && o.files) o.files.forEach(function (f) { if (f.storagePath) { try { storage.ref(f.storagePath).delete().catch(function () {}); } catch (e) {} } });
 }
 function directPrint(key, btn) {
   if (btn) { btn.disabled = true; btn.textContent = 'Printing...'; }
@@ -158,9 +187,9 @@ function directUpload(files) {
   var orderKey = ordersRef().push().key;
   var uploads = arr.map(function (f, idx) {
     var safeName = String(f.name).replace(/[^\w.\-() ]/g, '_');
-    var ref = storage.ref('shops/' + SHOP_ID + '/orders/' + orderKey + '/' + idx + '_' + safeName);
-    return ref.put(f).then(function (snap) { return snap.ref.getDownloadURL(); }).then(function (url) {
-      return { name: f.name, kind: 'other', size: f.size, pages: 1, copies: 1, colorMode: 'BW', rangeMode: 'all', range: '', nup: 1, spp: 1, downloadURL: url, storagePath: ref.fullPath };
+    var objectPath = 'shops/' + SHOP_ID + '/orders/' + orderKey + '/' + idx + '_' + safeName;
+    return supabaseUpload(f, objectPath).then(function (url) {
+      return { name: f.name, kind: 'other', size: f.size, pages: 1, copies: 1, colorMode: 'BW', rangeMode: 'all', range: '', nup: 1, spp: 1, paperSize: 'a4', downloadURL: url, storagePath: objectPath };
     });
   });
   var savedFiles = [];
@@ -197,11 +226,11 @@ function startDashboard() {
 }
 
 document.addEventListener('DOMContentLoaded', function () {
-  if (!CONFIG_OK) { showErr('Setup baaki hai: firebase-config.js mein apni Firebase config abhi bhari nahi gayi. Hidayat file (Pak-QR-Print-GitHub-Hidayat.txt) ke Step 2 ke mutabiq config paste karein.'); return; }
+  if (!CONFIG_OK) { showErr('Setup baaki hai: firebase-config.js mein apni Firebase config abhi bhari nahi gayi. Hidayat file (Pak-QR-Print-Hidayat-v2-Supabase.txt) ke Step 2 ke mutabiq config paste karein.'); return; }
+  if (!SUPABASE_OK) { showErr('Setup baaki hai: supabase-config.js mein Supabase ki config abhi bhari nahi gayi. Hidayat file ke Step 2 ke mutabiq config paste karein.'); return; }
   try {
     firebase.initializeApp(cfg);
     db = firebase.database();
-    storage = firebase.storage();
     auth = firebase.auth();
   } catch (e) { showErr('Firebase shuru nahi hua: ' + e.message); return; }
   $('loginBtn').addEventListener('click', function () {
