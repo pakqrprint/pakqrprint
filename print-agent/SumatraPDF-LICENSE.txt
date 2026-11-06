@@ -1,0 +1,26 @@
+============================================================
+ SumatraPDF - License Notice
+ (Pak QR Print ke print agent ke andar maujood PDF reader)
+============================================================
+
+SumatraPDF, by Krzysztof Kowalczyk, is free and open-source
+software licensed under the GNU General Public License
+version 3 (GPLv3).
+
+Official source: https://www.sumatrapdfreader.org
+
+Bundled here (Pak QR Print - GitHub version):
+  Program : SumatraPDF, version 3.6.1, 64-bit portable build
+  Original file name : SumatraPDF-3.6.1-64.exe
+  Shipped here as    : SumatraPDF.exe
+                       (wahi naam jo print agent dhoondhta hai)
+  Size    : 20,292,984 bytes
+  MD5     : 79435213ab241b13a9d8da354c088868
+  Changes : KOI tabdeeli nahi ki gayi - program jaisa
+            official site se mila, waisa hi rakha gaya hai.
+
+SumatraPDF print agent ke andar hi maujood hai taake
+PDF files seedha usi printer par print hon - is ke liye
+koi alag download ya install nahi chahiye.
+
+============================================================
