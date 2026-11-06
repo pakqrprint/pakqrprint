@@ -9,13 +9,13 @@
 // yahan nahi likha jata.
 // ============================================================
 window.PAKQR_FIREBASE_CONFIG = {
-  apiKey: "YAHAN-APNI-FIREBASE-API-KEY-LIKHEIN",
-  authDomain: "YAHAN-PROJECT-ID.firebaseapp.com",
-  databaseURL: "https://YAHAN-PROJECT-ID-default-rtdb.firebaseio.com",
-  projectId: "YAHAN-PROJECT-ID",
-  storageBucket: "YAHAN-PROJECT-ID.appspot.com",
-  messagingSenderId: "YAHAN-SENDER-ID-LIKHEIN",
-  appId: "YAHAN-APP-ID-LIKHEIN"
+  apiKey: "AIzaSyBZXoguVL0KT_9V0xUwYM7DqqBEM4NZ9sQ",
+  authDomain: "pak-qr-print.firebaseapp.com",
+  databaseURL: "https://pak-qr-print-default-rtdb.firebaseio.com",
+  projectId: "pak-qr-print",
+  storageBucket: "pak-qr-print.firebasestorage.app",
+  messagingSenderId: "88024052278",
+  appId: "1:88024052278:web:e029128a284d88cc649e97"
 };
 
 // Dukaan ka ID - chhota, English, baghair space (masalan: pakqrprint).
