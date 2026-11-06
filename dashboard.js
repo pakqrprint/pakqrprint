@@ -6,13 +6,12 @@
 'use strict';
 function $(id) { return document.getElementById(id); }
 function esc(s) { return String(s == null ? '' : s).replace(/[&<>\"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
-function fmtRs(n) { return 'Rs. ' + Number(n || 0).toLocaleString('en-US'); }
 function showErr(msg) { var e = $('setupErr'); e.textContent = msg; e.style.display = 'block'; }
 
 var cfg = window.PAKQR_FIREBASE_CONFIG || {};
 var CONFIG_OK = cfg.apiKey && cfg.apiKey.indexOf('YAHAN-') !== 0 && cfg.databaseURL && cfg.databaseURL.indexOf('YAHAN-') !== 0;
 var SHOP_ID = window.PAKQR_SHOP_ID || 'pakqrprint';
-var DEFAULT_SETTINGS = { shopName: 'Pak QR Print', rateBW: 10, rateColour: 30, rateCNIC: 50, ratePhoto: 50, autoPrint: true, autoOpen: true, permissionMode: false, autoDeleteMinutes: 5, printerName: '' };
+var DEFAULT_SETTINGS = { shopName: 'Pak QR Print', autoPrint: true, autoOpen: true, permissionMode: false, autoDeleteMinutes: 5, printerName: '' };
 var settings = DEFAULT_SETTINGS;
 var db = null, storage = null, auth = null;
 var orders = {}; // key -> order
@@ -57,7 +56,7 @@ function renderQueue() {
       return esc(f.name) + ' — ' + (f.pages || 1) + ' pg × ' + (f.copies || 1) + ' • ' + esc(f.colorMode || o.colorMode || 'BW') + (f.nup > 1 ? ' • ' + f.nup + '/sheet' : '') + (f.range ? ' • ' + esc(f.range) : '');
     }).join('<br>');
     d.innerHTML = '<div class="qhead"><span>Token ' + esc(o.token || o.orderNo || '') + ' — ' + esc(o.customerName || 'Walk-in') + '</span><span>' + badge(o.status) + '</span></div>'
-      + '<div class="qfile">' + files + '<br>Kul: ' + fmtRs(o.total || 0) + ' • ' + esc(o.payment || 'Cash') + (o.source === 'idcard' ? ' • ID Card (' + esc(o.idType || '') + ')' : '') + '</div>'
+      + '<div class="qfile">' + files + (o.source === 'idcard' ? '<br>ID Card (' + esc(o.idType || '') + ')' : '') + '</div>'
       + (o.printLog && o.printLog.length ? '<div class="qfile" style="color:#991b1b">' + esc(o.printLog[o.printLog.length - 1].error || o.printLog[o.printLog.length - 1].method || '') + '</div>' : '')
       + '<div class="qacts">'
       + '<button type="button" class="primary" data-a4="' + k + '">A4 Preview</button>'
@@ -132,17 +131,11 @@ function applySettingsToUI() {
   $('togPerm').checked = !!settings.permissionMode;
   $('selAutoDel').value = String(settings.autoDeleteMinutes == null ? 5 : settings.autoDeleteMinutes);
   $('setShopName').value = settings.shopName || 'Pak QR Print';
-  $('setRateBW').value = settings.rateBW;
-  $('setRateColour').value = settings.rateColour;
-  $('setRateCNIC').value = settings.rateCNIC;
   $('setPrinter').value = settings.printerName || '';
 }
 function saveSettings() {
   settingsRef().update({
     shopName: ($('setShopName').value || 'Pak QR Print').trim(),
-    rateBW: parseFloat($('setRateBW').value) || 10,
-    rateColour: parseFloat($('setRateColour').value) || 30,
-    rateCNIC: parseFloat($('setRateCNIC').value) || 50,
     printerName: ($('setPrinter').value || '').trim()
   }).then(function () { alert('Settings save ho gayi hain.'); }).catch(function (e) { alert('Settings save nahi hui: ' + e.message); });
 }
@@ -176,7 +169,7 @@ function directUpload(files) {
     return db.ref('shops/' + SHOP_ID + '/counter').transaction(function (cur) { return (cur || 1000) + 1; });
   }).then(function (res) {
     var n = res.snapshot.val() || 1001;
-    return ordersRef().child(orderKey).set({ orderNo: 'QP-' + n, token: 'QP-' + n, customerName: 'Walk-in', createdAt: firebase.database.ServerValue.TIMESTAMP, status: 'New', colorMode: 'BW', copies: 1, total: 0, payment: 'Cash', source: 'walkin', files: savedFiles, printLog: [] });
+    return ordersRef().child(orderKey).set({ orderNo: 'QP-' + n, token: 'QP-' + n, customerName: 'Walk-in', createdAt: firebase.database.ServerValue.TIMESTAMP, status: 'New', colorMode: 'BW', copies: 1, source: 'walkin', files: savedFiles, printLog: [] });
   }).then(function () { alert('Walk-in order queue mein aa gaya hai.'); }).catch(function (e) { alert('Upload nahi hua: ' + e.message); });
 }
 

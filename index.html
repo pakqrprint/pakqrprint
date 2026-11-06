@@ -61,14 +61,8 @@
           <label>Paper Size</label>
           <select id="paperSel"><option>A4</option></select>
         </div>
-        <div>
-          <label>Payment</label>
-          <select id="paySel"><option>Cash</option><option>Easypaisa</option><option>JazzCash</option><option>Raast</option></select>
-        </div>
       </div>
-      <div class="total" id="totalBox">Kul: Rs. 0 (B&amp;W)</div>
       <button class="btn" id="sendBtn" type="button" disabled>Send Files to Shopkeeper</button>
-      <div class="hint" style="margin-top:10px">Rate: B&amp;W Rs. 10/page, Colour Rs. 30/page. Paise dukaan par ada karein (Cash / Easypaisa / JazzCash / Raast).</div>
     </div>
 
     <div id="idCardBox" style="display:none">
@@ -106,7 +100,6 @@
       <button class="btn ghost" id="idMakeBtn" type="button" style="margin-top:12px">ID Card A4 Composite Banayein</button>
       <div class="hint" id="idMsg">Front aur back dono choose karein, phir "Composite Banayein" dabayein.</div>
       <button class="btn" id="idSendBtn" type="button">Send ID Card to Shop</button>
-      <div class="hint" style="margin-top:10px">ID Card flat rate: Rs. 50 (aik A4 sheet).</div>
     </div>
   </div>
 
@@ -151,7 +144,7 @@
   <p class="hint" style="text-align:center;margin:16px 0">© 2026 Pak QR Print — All rights reserved.</p>
 </div>
 <script>
-// Print Mode seg buttons -> hidden radios (customer.js calcTotal in ko parhta hai)
+// Print Mode seg buttons -> hidden radios
 (function () {
   var box = document.getElementById('segPrintType');
   if (!box) return;

@@ -6,7 +6,6 @@
 'use strict';
 function $(id) { return document.getElementById(id); }
 function esc(s) { return String(s == null ? '' : s).replace(/[&<>\"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
-function fmtRs(n) { return 'Rs. ' + Number(n || 0).toLocaleString('en-US'); }
 function showErr(msg) { var e = $('setupErr'); e.textContent = msg; e.style.display = 'block'; }
 function showOk(msg) { var e = $('setupOk'); e.textContent = msg; e.style.display = 'block'; }
 
@@ -19,7 +18,7 @@ try {
   else if (window.PAKQR_SHOP_ID) SHOP_ID = window.PAKQR_SHOP_ID;
 } catch (e) {}
 
-var DEFAULT_SETTINGS = { shopName: 'Pak QR Print', rateBW: 10, rateColour: 30, rateCNIC: 50, ratePhoto: 50, autoPrint: true, autoOpen: true, permissionMode: false, autoDeleteMinutes: 5 };
+var DEFAULT_SETTINGS = { shopName: 'Pak QR Print', autoPrint: true, autoOpen: true, permissionMode: false, autoDeleteMinutes: 5 };
 var settings = DEFAULT_SETTINGS;
 var db = null, storage = null;
 var selFiles = []; // {file, kind, pages, pagesAuto, copies, rangeMode, range, rangePages, nup, spp}
@@ -91,21 +90,6 @@ function parseRange(str, total) {
   if (/^\d+$/.test(s)) { var p = parseInt(s, 10); if (p >= 1 && p <= total) return { from: p, to: p, count: 1 }; }
   return null;
 }
-function effectivePages(it) {
-  if (it.rangeMode === 'first') return 1;
-  if (it.rangeMode === 'some' && it.rangePages) return it.rangePages;
-  return it.pages;
-}
-function calcTotal() {
-  var colorMode = document.querySelector('input[name="printType"]:checked');
-  var isColour = colorMode && colorMode.value === 'Colour';
-  var rate = isColour ? Number(settings.rateColour) : Number(settings.rateBW);
-  var total = 0;
-  selFiles.forEach(function (it) { total += effectivePages(it) * rate * (it.copies || 1); });
-  $('totalBox').textContent = 'Kul: ' + fmtRs(total) + (isColour ? ' (Colour)' : ' (B&W)');
-  return total;
-}
-
 function renderFiles() {
   var box = $('fileList'); box.innerHTML = '';
   selFiles.forEach(function (it, idx) {
@@ -131,15 +115,14 @@ function renderFiles() {
     d.innerHTML = h;
     box.appendChild(d);
   });
-  box.querySelectorAll('[data-pg]').forEach(function (el) { el.addEventListener('change', function () { var it = selFiles[+el.getAttribute('data-pg')]; var v = parseInt(el.value, 10); if (v > 0) { it.pages = v; it.pagesAuto = false; } renderFiles(); calcTotal(); }); });
-  box.querySelectorAll('[data-cp]').forEach(function (el) { el.addEventListener('change', function () { var it = selFiles[+el.getAttribute('data-cp')]; var v = parseInt(el.value, 10); if (v > 0) it.copies = v; calcTotal(); }); });
+  box.querySelectorAll('[data-pg]').forEach(function (el) { el.addEventListener('change', function () { var it = selFiles[+el.getAttribute('data-pg')]; var v = parseInt(el.value, 10); if (v > 0) { it.pages = v; it.pagesAuto = false; } renderFiles(); }); });
+  box.querySelectorAll('[data-cp]').forEach(function (el) { el.addEventListener('change', function () { var it = selFiles[+el.getAttribute('data-cp')]; var v = parseInt(el.value, 10); if (v > 0) it.copies = v; }); });
   box.querySelectorAll('[data-nup]').forEach(function (el) { el.addEventListener('change', function () { selFiles[+el.getAttribute('data-nup')].nup = parseInt(el.value, 10) || 1; }); });
   box.querySelectorAll('[data-spp]').forEach(function (el) { el.addEventListener('change', function () { selFiles[+el.getAttribute('data-spp')].spp = parseInt(el.value, 10) || 1; }); });
-  box.querySelectorAll('[data-rm]').forEach(function (el) { el.addEventListener('change', function () { var it = selFiles[+el.getAttribute('data-rm')]; it.rangeMode = el.value; it.range = ''; it.rangePages = 0; renderFiles(); calcTotal(); }); });
-  box.querySelectorAll('[data-rg]').forEach(function (el) { el.addEventListener('change', function () { var it = selFiles[+el.getAttribute('data-rg')]; var r = parseRange(el.value, it.pages); if (r) { it.range = el.value; it.rangePages = r.count; } else { it.range = ''; it.rangePages = 0; el.value = ''; alert('Range theek nahi hai - masalan 2-5 likhein, kul pages ' + it.pages + ' hain.'); } calcTotal(); }); });
-  box.querySelectorAll('[data-x]').forEach(function (el) { el.addEventListener('click', function () { selFiles.splice(+el.getAttribute('data-x'), 1); renderFiles(); calcTotal(); }); });
+  box.querySelectorAll('[data-rm]').forEach(function (el) { el.addEventListener('change', function () { var it = selFiles[+el.getAttribute('data-rm')]; it.rangeMode = el.value; it.range = ''; it.rangePages = 0; renderFiles(); }); });
+  box.querySelectorAll('[data-rg]').forEach(function (el) { el.addEventListener('change', function () { var it = selFiles[+el.getAttribute('data-rg')]; var r = parseRange(el.value, it.pages); if (r) { it.range = el.value; it.rangePages = r.count; } else { it.range = ''; it.rangePages = 0; el.value = ''; alert('Range theek nahi hai - masalan 2-5 likhein, kul pages ' + it.pages + ' hain.'); } }); });
+  box.querySelectorAll('[data-x]').forEach(function (el) { el.addEventListener('click', function () { selFiles.splice(+el.getAttribute('data-x'), 1); renderFiles(); }); });
   $('sendBtn').disabled = selFiles.length === 0;
-  calcTotal();
 }
 
 function addFiles(list) {
@@ -239,8 +222,6 @@ function sendOrder() {
   var btn = $('sendBtn'); btn.disabled = true; btn.textContent = 'Bhej rahe hain...';
   var name = ($('custName').value || '').trim();
   var colorMode = (document.querySelector('input[name="printType"]:checked') || {}).value || 'BW';
-  var payment = ($('paySel').value || 'Cash');
-  var total = calcTotal();
   var orderKey = db.ref('shops/' + SHOP_ID + '/orders').push().key;
   var uploads = selFiles.map(function (it, idx) {
     var safeName = String(it.file.name).replace(/[^\w.\-() ]/g, '_');
@@ -254,7 +235,7 @@ function sendOrder() {
     return counterRef.transaction(function (cur) { return (cur || 1000) + 1; }).then(function (res) {
       var n = res.snapshot.val() || 1001;
       var orderNo = 'QP-' + n;
-      var order = { orderNo: orderNo, token: orderNo, customerName: name || 'Walk-in', createdAt: firebase.database.ServerValue.TIMESTAMP, status: 'New', colorMode: colorMode, copies: 1, total: total, payment: payment, source: 'customer', files: files, printLog: [] };
+      var order = { orderNo: orderNo, token: orderNo, customerName: name || 'Walk-in', createdAt: firebase.database.ServerValue.TIMESTAMP, status: 'New', colorMode: colorMode, copies: 1, source: 'customer', files: files, printLog: [] };
       return db.ref('shops/' + SHOP_ID + '/orders/' + orderKey).set(order).then(function () { return orderNo; });
     });
   }).then(function (orderNo) {
@@ -281,7 +262,7 @@ function sendIdOrder() {
     return counterRef.transaction(function (cur) { return (cur || 1000) + 1; }).then(function (res) {
       var n = res.snapshot.val() || 1001;
       var orderNo = 'QP-' + n;
-      var order = { orderNo: orderNo, token: orderNo, customerName: name || 'Walk-in', createdAt: firebase.database.ServerValue.TIMESTAMP, status: 'New', colorMode: 'Color', copies: 1, total: Number(settings.rateCNIC) || 50, payment: ($('paySel').value || 'Cash'), source: 'idcard', idType: type, idLayout: idLayout, files: [{ name: 'ID_Card_A4_Composite.jpg', kind: 'idcard', size: file.size, pages: 1, copies: 1, colorMode: 'Color', rangeMode: 'all', range: '', nup: 1, spp: 1, downloadURL: url, storagePath: ref.fullPath }], printLog: [] };
+      var order = { orderNo: orderNo, token: orderNo, customerName: name || 'Walk-in', createdAt: firebase.database.ServerValue.TIMESTAMP, status: 'New', colorMode: 'Color', copies: 1, source: 'idcard', idType: type, idLayout: idLayout, files: [{ name: 'ID_Card_A4_Composite.jpg', kind: 'idcard', size: file.size, pages: 1, copies: 1, colorMode: 'Color', rangeMode: 'all', range: '', nup: 1, spp: 1, downloadURL: url, storagePath: ref.fullPath }], printLog: [] };
       return db.ref('shops/' + SHOP_ID + '/orders/' + orderKey).set(order).then(function () { return orderNo; });
     });
   }).then(function (orderNo) {
@@ -326,7 +307,6 @@ document.addEventListener('DOMContentLoaded', function () {
   dz.addEventListener('dragover', function (e) { e.preventDefault(); dz.classList.add('over'); });
   dz.addEventListener('dragleave', function () { dz.classList.remove('over'); });
   dz.addEventListener('drop', function (e) { e.preventDefault(); dz.classList.remove('over'); addFiles(e.dataTransfer.files); });
-  document.querySelectorAll('input[name="printType"]').forEach(function (r) { r.addEventListener('change', calcTotal); });
   $('sendBtn').addEventListener('click', sendOrder);
   // ID card
   segInit('segIdLayout', function (v) { idLayout = v; idCompositeReady = false; });
