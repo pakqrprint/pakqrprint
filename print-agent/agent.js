@@ -2,13 +2,17 @@
 // ============================================================
 // Ye program dukaan ke Windows PC par chalta hai. Kaam:
 //   1. Firebase Realtime Database mein naye orders dekhta hai
-//   2. File Firebase Storage se download karta hai
+//   2. File Supabase Storage se (public URL se) download karta hai
 //   3. Print engine (printEngine.js - offline v1 ka azmaya hua
 //      engine) se print karta hai: SumatraPDF (PDF), Word COM
 //      (Word), Shell verb (Excel / PowerPoint 1-slide), PowerPoint
 //      COM (slides-per-page), image sheets + Document N-up.
 //   4. Status wapas Firebase par likhta hai (Printed / PrintFailed)
-//   5. Auto-Delete: purane Done/Cancelled orders saaf karta hai.
+//   5. Auto-Delete: purane Done/Cancelled orders (Realtime Database
+//      se) saaf karta hai. NOTE: Supabase ki file agent delete nahi
+//      karta — anon key se delete nahi hota (policy: SELECT+INSERT
+//      only). File bucket mein rehti hai; Supabase dashboard se
+//      waqt par saaf karni hogi (Hidayat dekhein).
 // Sirf Node.js built-in modules - koi npm install nahi.
 // Windows par hi print karta hai; kisi aur OS par queue dekhta
 // hai aur saaf batata hai ke print sirf Windows par hoga.
@@ -42,7 +46,6 @@ function loadConfig() {
     process.exit(1);
   }
   c.pollSeconds = c.pollSeconds || 5;
-  c.storageBucket = c.storageBucket || '';
   return c;
 }
 const CFG = loadConfig();
@@ -111,12 +114,12 @@ async function dbGet(p) { await ensureAuth(); return httpsJson('GET', dbUrl(p), 
 async function dbPatch(p, obj) { await ensureAuth(); return httpsJson('PATCH', dbUrl(p), obj); }
 async function dbPut(p, obj) { await ensureAuth(); return httpsJson('PUT', dbUrl(p), obj); }
 async function dbDelete(p) { await ensureAuth(); return httpsJson('DELETE', dbUrl(p), null); }
-async function storageDelete(storagePath) {
-  if (!CFG.storageBucket) return;
-  await ensureAuth();
-  const url = 'https://firebasestorage.googleapis.com/v0/b/' + encodeURIComponent(CFG.storageBucket) + '/o/' + encodeURIComponent(storagePath) + '?auth=' + encodeURIComponent(idToken);
-  try { await httpsJson('DELETE', url, null); } catch (e) { /* file pehle se na ho to koi baat nahi */ }
-}
+// ---------- Supabase file delete ----------
+// Agent Supabase ki file delete NAHI karta: anon key se delete nahi
+// hota (bucket policy: SELECT + INSERT only) aur agent mein koi
+// Supabase key nahi hoti. Order Realtime Database se saaf hota hai;
+// file bucket mein rehti hai — Supabase dashboard se saaf karein.
+async function storageDelete(storagePath) { return; }
 
 // ---------- Print ----------
 function safeName(n) { return String(n || 'file').replace(/[\\/:*?"<>|]/g, '_'); }
