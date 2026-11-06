@@ -20,6 +20,8 @@ header.topbar .brandtxt small { font-size: 12px; color: #64748b; font-weight: 70
 header.topbar .spacer { flex: 1; }
 header.topbar .tbtn { background: #fff; border: 1.5px solid #d9deef; color: #1e1b4b; border-radius: 10px; padding: 9px 14px; font-weight: 800; cursor: pointer; font-size: 14px; font-family: inherit; }
 header.topbar .tbtn.danger { border-color: #fecaca; color: #dc2626; background: #fff5f5; }
+header.topbar .tbtn { display: inline-flex; align-items: center; gap: 6px; }
+header.topbar .tbtn svg { width: 16px; height: 16px; flex: 0 0 auto; }
 
 /* ---------- layout ---------- */
 .wrap { max-width: 760px; margin: 0 auto; padding: 14px; }
