@@ -116,6 +116,7 @@ function parseRange(str, total) {
   if (/^\d+$/.test(s)) { var p = parseInt(s, 10); if (p >= 1 && p <= total) return { from: p, to: p, count: 1 }; }
   return null;
 }
+var EYE_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>';
 function renderFiles() {
   var box = $('fileList'); box.innerHTML = '';
   selFiles.forEach(function (it, idx) {
@@ -129,15 +130,16 @@ function renderFiles() {
         + '<option value="all"' + (it.rangeMode === 'all' ? ' selected' : '') + '>All Pages</option>'
         + '<option value="first"' + (it.rangeMode === 'first' ? ' selected' : '') + '>First Page Only</option>'
         + '<option value="some"' + (it.rangeMode === 'some' ? ' selected' : '') + '>Custom Page Range</option></select>'
-        + (it.rangeMode === 'some' ? '<input type="text" placeholder="masalan 2-5" value="' + esc(it.range || '') + '" data-rg="' + idx + '" style="width:90px">' : '')
+        + (it.rangeMode === 'some' ? '<input type="text" placeholder="e.g. 2-5" value="' + esc(it.range || '') + '" data-rg="' + idx + '" style="width:90px">' : '')
         + '</div>';
     }
     h += '<div class="frow"><label>Copies:</label><input type="number" min="1" max="99" value="' + (it.copies || 1) + '" data-cp="' + idx + '" style="width:64px">'
-      + '<label>Aik sheet par kitne:</label><select data-nup="' + idx + '">'
+      + '<label>Per sheet:</label><select data-nup="' + idx + '">'
       + [1, 2, 4, 6].map(function (n) { return '<option value="' + n + '"' + (it.nup === n ? ' selected' : '') + '>' + n + '</option>'; }).join('')
       + '</select>'
       + (it.kind === 'powerpoint' ? '<label>Slides/page:</label><select data-spp="' + idx + '">' + [1, 2, 4, 6, 9].map(function (n) { return '<option value="' + n + '"' + (it.spp === n ? ' selected' : '') + '>' + n + '</option>'; }).join('') + '</select>' : '')
-      + '<button type="button" class="x" data-x="' + idx + '">Hatayein</button></div>';
+      + '<button type="button" class="eye" data-pv="' + idx + '" title="Preview">' + EYE_SVG + '</button>'
+      + '<button type="button" class="x" data-x="' + idx + '">Remove</button></div>';
     d.innerHTML = h;
     box.appendChild(d);
   });
@@ -148,9 +150,42 @@ function renderFiles() {
   box.querySelectorAll('[data-rm]').forEach(function (el) { el.addEventListener('change', function () { var it = selFiles[+el.getAttribute('data-rm')]; it.rangeMode = el.value; it.range = ''; it.rangePages = 0; renderFiles(); }); });
   box.querySelectorAll('[data-rg]').forEach(function (el) { el.addEventListener('change', function () { var it = selFiles[+el.getAttribute('data-rg')]; var r = parseRange(el.value, it.pages); if (r) { it.range = el.value; it.rangePages = r.count; } else { it.range = ''; it.rangePages = 0; el.value = ''; alert('Range is not correct - for example write 2-5, total pages are ' + it.pages + '.'); } }); });
   box.querySelectorAll('[data-x]').forEach(function (el) { el.addEventListener('click', function () { selFiles.splice(+el.getAttribute('data-x'), 1); renderFiles(); }); });
+  box.querySelectorAll('[data-pv]').forEach(function (el) { el.addEventListener('click', function () { openPreview(selFiles[+el.getAttribute('data-pv')]); }); });
   $('sendBtn').disabled = selFiles.length === 0;
 }
 
+var prevUrl = null;
+function openPreview(it) {
+  var m = $('prevModal'), body = $('prevBody'), title = $('prevTitle');
+  if (!m || !body || !it) return;
+  title.textContent = it.file.name;
+  body.innerHTML = '<p class="hint">Loading preview...</p>';
+  m.style.display = 'flex';
+  if (prevUrl) { URL.revokeObjectURL(prevUrl); prevUrl = null; }
+  if (it.kind === 'image') {
+    prevUrl = URL.createObjectURL(it.file);
+    body.innerHTML = '<img src="' + prevUrl + '" alt="preview">';
+  } else if (it.kind === 'pdf') {
+    it.file.arrayBuffer().then(function (buf) {
+      return import('./pdfjs/pdf.mjs').then(function (pdfjsLib) {
+        pdfjsLib.GlobalWorkerOptions.workerSrc = './pdfjs/pdf.worker.mjs';
+        return pdfjsLib.getDocument({ data: new Uint8Array(buf) }).promise;
+      });
+    }).then(function (pdf) { return pdf.getPage(1); }).then(function (page) {
+      var vp = page.getViewport({ scale: 1.5 });
+      var cv = document.createElement('canvas');
+      cv.width = vp.width; cv.height = vp.height;
+      body.innerHTML = ''; body.appendChild(cv);
+      return page.render({ canvasContext: cv.getContext('2d'), viewport: vp }).promise;
+    }).catch(function () { body.innerHTML = '<p class="hint">PDF preview did not open.</p>'; });
+  } else {
+    body.innerHTML = '<p class="hint">No preview is available for this file type. The file will be sent as it is.</p>';
+  }
+}
+function closePreview() {
+  var m = $('prevModal'); if (m) m.style.display = 'none';
+  if (prevUrl) { URL.revokeObjectURL(prevUrl); prevUrl = null; }
+}
 function addFiles(list) {
   var arr = Array.prototype.slice.call(list || []);
   arr.forEach(function (f) {
@@ -196,7 +231,7 @@ function drawIdCard(front, back, type, layout) {
   cx.fillStyle = '#1e1b4b'; cx.font = 'bold 26px Arial'; cx.textAlign = 'center';
   cx.fillText(type + ' — Front + Back (A4)', cv.width / 2, 46);
   cx.font = '16px Arial'; cx.fillStyle = '#5b5f8a';
-  cx.fillText('Kaichi wali lakeer se kaatein — dono taraf aik hi A4 par', cv.width / 2, 72);
+  cx.fillText('Cut along the dashed line — both sides on one A4', cv.width / 2, 72);
   if (layout === 'side') {
     drawIdOne(cx, front, 28, 420, 340, 214, 'Front');
     drawIdOne(cx, back, 426, 420, 340, 214, 'Back');
@@ -338,6 +373,8 @@ document.addEventListener('DOMContentLoaded', function () {
   dz.addEventListener('dragleave', function () { dz.classList.remove('over'); });
   dz.addEventListener('drop', function (e) { e.preventDefault(); dz.classList.remove('over'); addFiles(e.dataTransfer.files); });
   $('sendBtn').addEventListener('click', sendOrder);
+  $('prevClose').addEventListener('click', closePreview);
+  $('prevModal').addEventListener('click', function (e) { if (e.target === $('prevModal')) closePreview(); });
   // ID card
   segInit('segIdLayout', function (v) { idLayout = v; idCompositeReady = false; });
   [['idFront', 'frontBox', 'Choose Front'], ['idBack', 'backBox', 'Choose Back']].forEach(function (pair) {
