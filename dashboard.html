@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="ur">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pak QR Print — Shopkeeper Dashboard</title>
+<link rel="stylesheet" href="styles.css">
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
+<script src="firebase-config.js"></script>
+<script src="dashboard.js"></script>
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">Pak QR Print</div>
+  <div class="spacer"></div>
+  <button type="button" id="homeBtn">Home Page</button>
+  <button type="button" id="logoutBtn" style="display:none">Logout</button>
+</header>
+
+<div class="wrap">
+  <div class="err" id="setupErr"></div>
+
+  <div class="card" id="authBox" style="max-width:420px;margin:24px auto">
+    <h2>Shopkeeper Login</h2>
+    <p class="hint">Apni dukaan ka email aur password likhein (Firebase Auth mein bana hua account).</p>
+    <div style="margin-top:10px"><label style="display:block;font-size:13px;font-weight:700;margin-bottom:5px">Email</label><input type="email" id="loginEmail" placeholder="dukaan@example.com"></div>
+    <div style="margin-top:10px"><label style="display:block;font-size:13px;font-weight:700;margin-bottom:5px">Password</label><input type="password" id="loginPass" placeholder="Password"></div>
+    <button class="btn" id="loginBtn" type="button">Login to Dashboard</button>
+    <p class="hint" id="loginMsg" style="margin-top:10px"></p>
+    <p class="hint">Pehli dafa? Hidayat file ka Step 2 dekhein — Firebase Console mein shopkeeper account banana hai.</p>
+  </div>
+
+  <div id="dashBox" style="display:none">
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
+        <h2 style="margin:0"><span data-shopname>Pak QR Print</span></h2>
+        <span class="hub-live"><span class="dot">●</span> Live Counter Queue Active</span>
+      </div>
+      <div class="hubbtns">
+        <button type="button" id="duBtn">Direct Upload File</button>
+        <button type="button" id="copyLinkBtn">Copy Customer Link</button>
+        <button type="button" id="qrBtn">View / Download QR</button>
+        <button type="button" id="posterBtn">QR Poster (A4)</button>
+      </div>
+      <input type="file" id="duInput" multiple accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx,.ppt,.pptx" style="display:none">
+
+      <div style="margin-top:12px">
+        <div class="hubtog"><span>Auto-Open Layout</span><label class="switch"><input type="checkbox" id="togAutoOpen"><span class="sl"></span></label></div>
+        <div class="hubtog"><span>Auto-Print Mode</span><label class="switch"><input type="checkbox" id="togAutoPrint"><span class="sl"></span></label></div>
+        <div class="hubtog"><span>Permission Mode</span><label class="switch"><input type="checkbox" id="togPerm"><span class="sl"></span></label></div>
+        <div class="hubtog"><span>Auto-Delete</span><select id="selAutoDel" style="width:auto"><option value="0">Off</option><option value="1">1 Minute</option><option value="5">5 Minutes</option><option value="15">15 Minutes</option></select></div>
+        <div class="hubtog"><span>Queue Active</span><span class="hub-live"><span class="dot">●</span> Active</span></div>
+      </div>
+
+      <div class="hubstats">
+        <div class="hubstat"><b id="stWalkin">0</b><span>Walk-in Customers</span></div>
+        <div class="hubstat"><b id="stPending">0</b><span>Pending Files</span></div>
+        <div class="hubstat"><b id="stPrinted">0</b><span>Printed Files</span></div>
+        <div class="hubstat"><b id="stFailed">0</b><span>Rejected / Failed</span></div>
+      </div>
+      <button class="btn ghost" id="clearBtn" type="button" style="margin-top:12px">Clear Completed Jobs</button>
+    </div>
+
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
+        <h2 style="margin:0">Live Document Print Queue</h2>
+        <button class="btn small" id="refreshBtn" type="button">Refresh</button>
+      </div>
+      <div id="queueList"></div>
+    </div>
+
+    <div class="card">
+      <h2>Settings</h2>
+      <div class="row2">
+        <div><label>Shop Name</label><input type="text" id="setShopName" value="Pak QR Print"></div>
+        <div><label>Printer Name (PC par)</label><input type="text" id="setPrinter" placeholder="Default printer (khaali chhodein)"></div>
+      </div>
+      <div class="row2">
+        <div><label>Rate B&amp;W (Rs./page)</label><input type="number" id="setRateBW" value="10"></div>
+        <div><label>Rate Colour (Rs./page)</label><input type="number" id="setRateColour" value="30"></div>
+        <div><label>Rate ID Card (Rs.)</label><input type="number" id="setRateCNIC" value="50"></div>
+      </div>
+      <button class="btn" id="saveSetBtn" type="button">Save Settings</button>
+      <p class="hint" style="margin-top:10px">Printer: dukaan ke PC par print agent chal raha hona chahiye (print-agent folder dekhein). Printer ka naam yahan waisa hi likhein jaisa Windows mein hai — khaali ho to default printer use hoga.</p>
+    </div>
+  </div>
+</div>
+
+<div class="a4modal" id="a4Modal" style="display:none">
+  <div class="a4box">
+    <h2 id="a4Title" style="margin:0">Preview</h2>
+    <p class="hint" id="a4Meta" style="margin:6px 0 0"></p>
+    <div class="a4sheet"><div id="a4Content" style="width:100%;text-align:center"></div></div>
+    <div class="a4tools">
+      <button type="button" class="primary" id="a4PrintBtn">Print Now</button>
+      <button type="button" id="a4ZoomIn">Zoom +</button>
+      <button type="button" id="a4ZoomOut">Zoom −</button>
+      <button type="button" id="a4Rotate">Rotate</button>
+      <button type="button" id="a4ViewBtn">View File</button>
+      <button type="button" id="a4CloseBtn">Close</button>
+    </div>
+    <p class="hint" style="margin-top:8px">"Print Now" dabane se order dukaan ke PC par print agent ko bhej diya jata hai — PC on, internet on aur printer laga hona lazmi hai.</p>
+  </div>
+</div>
+<script>
+// Logout button sirf login ke baad dikhayein
+(function () {
+  var t = setInterval(function () {
+    if (document.getElementById('dashBox').style.display === 'block') {
+      document.getElementById('logoutBtn').style.display = '';
+      clearInterval(t);
+    }
+  }, 500);
+})();
+</script>
+</body>
+</html>

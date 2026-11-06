@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="ur">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pak QR Print — Send Files to Print</title>
+<link rel="stylesheet" href="styles.css">
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
+<script src="firebase-config.js"></script>
+<script src="customer.js"></script>
+</head>
+<body>
+<div class="hero">
+  <h1><span data-shopname>Pak QR Print</span></h1>
+  <div class="sub">Print Documents Instantly — Direct upload to Shopkeeper's Live Print Queue</div>
+  <div class="pill"><span data-shopname>Pak QR Print</span></div>
+</div>
+
+<div class="wrap cust">
+  <div class="err" id="setupErr"></div>
+  <div class="ok" id="setupOk"></div>
+
+  <div class="card" id="formBox">
+    <h2>Print Documents Instantly</h2>
+    <div class="tagline">Direct upload to Shopkeeper's Live Print Queue</div>
+
+    <div class="ctabs" id="custTabs">
+      <button type="button" class="on" data-ctab="std">Standard Documents / Photos</button>
+      <button type="button" data-ctab="idcard">ID Card 2-in-1 (Front + Back)</button>
+    </div>
+
+    <div id="stdBox">
+      <div>
+        <label style="display:block;font-size:13px;font-weight:700;margin-bottom:5px">Your Name (Optional)</label>
+        <input type="text" id="custName" placeholder="Apna naam likhein (zaroori nahi)">
+      </div>
+      <div class="drop" id="dropZone" style="margin-top:12px">Choose or Drop File Here<br><span style="font-size:13px;font-weight:400">Tap or drag to select your file</span></div>
+      <div class="formats">File type: PDF, Word, Excel, PowerPoint, JPG, PNG • Max 25MB per file</div>
+      <input type="file" id="fileInput" multiple accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx,.ppt,.pptx" style="display:none">
+      <div id="fileList"></div>
+
+      <div class="row2">
+        <div>
+          <label>Copies</label>
+          <input type="number" id="copiesInput" min="1" max="99" value="1">
+        </div>
+        <div>
+          <label>Print Mode</label>
+          <div class="seg" id="segPrintType">
+            <button type="button" class="on" data-v="BW">B&amp;W</button>
+            <button type="button" data-v="Colour">Color</button>
+          </div>
+          <input type="radio" name="printType" value="BW" checked style="display:none">
+          <input type="radio" name="printType" value="Colour" style="display:none">
+        </div>
+      </div>
+      <div class="row2">
+        <div>
+          <label>Paper Size</label>
+          <select id="paperSel"><option>A4</option></select>
+        </div>
+        <div>
+          <label>Payment</label>
+          <select id="paySel"><option>Cash</option><option>Easypaisa</option><option>JazzCash</option><option>Raast</option></select>
+        </div>
+      </div>
+      <div class="total" id="totalBox">Kul: Rs. 0 (B&amp;W)</div>
+      <button class="btn" id="sendBtn" type="button" disabled>Send Files to Shopkeeper</button>
+      <div class="hint" style="margin-top:10px">Rate: B&amp;W Rs. 10/page, Colour Rs. 30/page. Paise dukaan par ada karein (Cash / Easypaisa / JazzCash / Raast).</div>
+    </div>
+
+    <div id="idCardBox" style="display:none">
+      <div class="hint">Single A4 ID Card Print Mode: Upload both Front and Back sides of your ID Card. They will be automatically arranged onto 1 single A4 paper with cut guides.</div>
+      <div class="row2">
+        <div>
+          <label>ID Card Type</label>
+          <select id="idType">
+            <option>CNIC</option>
+            <option>Passport</option>
+            <option>Driving License</option>
+            <option>Student / College ID</option>
+            <option>Other ID Card</option>
+          </select>
+        </div>
+        <div>
+          <label>A4 Page Layout</label>
+          <div class="seg" id="segIdLayout">
+            <button type="button" class="on" data-v="stacked">Stacked</button>
+            <button type="button" data-v="side">Side-by-Side</button>
+          </div>
+        </div>
+      </div>
+      <div class="row2">
+        <div>
+          <label>1. Front Side Photo *</label>
+          <input type="file" id="idFront" accept="image/*">
+        </div>
+        <div>
+          <label>2. Back Side Photo *</label>
+          <input type="file" id="idBack" accept="image/*">
+        </div>
+      </div>
+      <canvas id="idCardCanvas" width="794" height="1123" class="idprev" style="margin-top:12px"></canvas>
+      <button class="btn ghost" id="idMakeBtn" type="button" style="margin-top:12px">ID Card A4 Composite Banayein</button>
+      <div class="hint" id="idMsg">Front aur back dono choose karein, phir "Composite Banayein" dabayein.</div>
+      <button class="btn" id="idSendBtn" type="button">Send ID Card to Shop</button>
+      <div class="hint" style="margin-top:10px">ID Card flat rate: Rs. 50 (aik A4 sheet).</div>
+    </div>
+  </div>
+
+  <div class="card success" id="successBox" style="display:none">
+    <h2>Files Sent Successfully!</h2>
+    <p>Your documents are now showing on the shopkeeper's screen.</p>
+    <div>Token</div>
+    <div class="tok" id="tokenNo">QP-1001</div>
+    <p class="hint">Apna Token number yaad rakhein — dukaan par yahi number batayein.</p>
+    <button class="btn ghost" id="againBtn" type="button">Aur Files Bhejein</button>
+  </div>
+
+  <div class="card">
+    <h2>How It Works</h2>
+    <div class="steps">
+      <div><b>1</b>Choose Document</div>
+      <div><b>2</b>Upload PDF / Photo</div>
+      <div><b>3</b>Pick Paper Size</div>
+      <div><b>4</b>Print Instantly</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Print Sizes &amp; Format</h2>
+    <table class="sizes">
+      <tr><th>Format</th><th>Size</th><th>Best For</th></tr>
+      <tr><td>Standard Print</td><td>A4 (210 × 297 mm)</td><td>PDF, Word, Excel, PowerPoint</td></tr>
+      <tr><td>ID Card (A4)</td><td>1000 × 1616 px</td><td>CNIC, Passport, Driving License</td></tr>
+      <tr><td>Photo (4×6)</td><td>1200 × 1800 px</td><td>Passport Photo, ID Card</td></tr>
+      <tr><td>PVC Card</td><td>85.6 × 54 mm</td><td>Premium PVC card quality</td></tr>
+    </table>
+  </div>
+
+  <div class="card faq">
+    <h2>FAQs</h2>
+    <details><summary>Kya file bhejne ke liye login chahiye?</summary><p>Nahi — customer ko koi login nahi chahiye. Bas file choose karein aur bhej dein.</p></details>
+    <details><summary>Kaun si files bhej sakte hain?</summary><p>PDF, Word (.doc/.docx), Excel (.xls/.xlsx), PowerPoint (.ppt/.pptx), JPG aur PNG — har file max 25MB.</p></details>
+    <details><summary>Print kab niklega?</summary><p>File bhejte hi dukaan ke dashboard par khul jati hai (Auto-Open) aur Auto-Print ON ho to foran print ho jati hai.</p></details>
+    <details><summary>Kya ye mobile par chalta hai?</summary><p>Ji — ye page phone par bhi waisa hi chalta hai, gallery ya camera se photo seedha upload kar sakte hain.</p></details>
+  </div>
+
+  <p class="hint" style="text-align:center;margin:16px 0">© 2026 Pak QR Print — All rights reserved.</p>
+</div>
+<script>
+// Print Mode seg buttons -> hidden radios (customer.js calcTotal in ko parhta hai)
+(function () {
+  var box = document.getElementById('segPrintType');
+  if (!box) return;
+  box.querySelectorAll('button').forEach(function (b) {
+    b.addEventListener('click', function () {
+      box.querySelectorAll('button').forEach(function (x) { x.classList.remove('on'); });
+      b.classList.add('on');
+      var v = b.getAttribute('data-v');
+      document.querySelectorAll('input[name="printType"]').forEach(function (r) { r.checked = (r.value === v); });
+      var ev = new Event('change'); document.querySelector('input[name="printType"]:checked').dispatchEvent(ev);
+    });
+  });
+  var cp = document.getElementById('copiesInput');
+  if (cp) cp.addEventListener('change', function () {
+    var v = parseInt(cp.value, 10) || 1;
+    document.querySelectorAll('#fileList [data-cp]').forEach(function (el) { el.value = v; el.dispatchEvent(new Event('change')); });
+  });
+})();
+</script>
+</body>
+</html>
