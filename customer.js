@@ -222,12 +222,13 @@ function sendOrder() {
   var btn = $('sendBtn'); btn.disabled = true; btn.textContent = 'Bhej rahe hain...';
   var name = ($('custName').value || '').trim();
   var colorMode = (document.querySelector('input[name="printType"]:checked') || {}).value || 'BW';
+  var paperSize = ($('paperSel') && $('paperSel').value) || 'a4';
   var orderKey = db.ref('shops/' + SHOP_ID + '/orders').push().key;
   var uploads = selFiles.map(function (it, idx) {
     var safeName = String(it.file.name).replace(/[^\w.\-() ]/g, '_');
     var ref = storage.ref('shops/' + SHOP_ID + '/orders/' + orderKey + '/' + idx + '_' + safeName);
     return ref.put(it.file).then(function (snap) { return snap.ref.getDownloadURL(); }).then(function (url) {
-      return { name: it.file.name, kind: it.kind, size: it.file.size, pages: it.pages, copies: it.copies || 1, colorMode: colorMode, rangeMode: it.rangeMode, range: it.range || '', nup: it.nup || 1, spp: it.spp || 1, downloadURL: url, storagePath: ref.fullPath };
+      return { name: it.file.name, kind: it.kind, size: it.file.size, pages: it.pages, copies: it.copies || 1, colorMode: colorMode, rangeMode: it.rangeMode, range: it.range || '', nup: it.nup || 1, spp: it.spp || 1, paperSize: paperSize, downloadURL: url, storagePath: ref.fullPath };
     });
   });
   Promise.all(uploads).then(function (files) {
@@ -235,7 +236,7 @@ function sendOrder() {
     return counterRef.transaction(function (cur) { return (cur || 1000) + 1; }).then(function (res) {
       var n = res.snapshot.val() || 1001;
       var orderNo = 'QP-' + n;
-      var order = { orderNo: orderNo, token: orderNo, customerName: name || 'Walk-in', createdAt: firebase.database.ServerValue.TIMESTAMP, status: 'New', colorMode: colorMode, copies: 1, source: 'customer', files: files, printLog: [] };
+      var order = { orderNo: orderNo, token: orderNo, customerName: name || 'Walk-in', createdAt: firebase.database.ServerValue.TIMESTAMP, status: 'New', colorMode: colorMode, copies: 1, paperSize: paperSize, source: 'customer', files: files, printLog: [] };
       return db.ref('shops/' + SHOP_ID + '/orders/' + orderKey).set(order).then(function () { return orderNo; });
     });
   }).then(function (orderNo) {
@@ -262,7 +263,7 @@ function sendIdOrder() {
     return counterRef.transaction(function (cur) { return (cur || 1000) + 1; }).then(function (res) {
       var n = res.snapshot.val() || 1001;
       var orderNo = 'QP-' + n;
-      var order = { orderNo: orderNo, token: orderNo, customerName: name || 'Walk-in', createdAt: firebase.database.ServerValue.TIMESTAMP, status: 'New', colorMode: 'Color', copies: 1, source: 'idcard', idType: type, idLayout: idLayout, files: [{ name: 'ID_Card_A4_Composite.jpg', kind: 'idcard', size: file.size, pages: 1, copies: 1, colorMode: 'Color', rangeMode: 'all', range: '', nup: 1, spp: 1, downloadURL: url, storagePath: ref.fullPath }], printLog: [] };
+      var order = { orderNo: orderNo, token: orderNo, customerName: name || 'Walk-in', createdAt: firebase.database.ServerValue.TIMESTAMP, status: 'New', colorMode: 'Color', copies: 1, paperSize: 'a4', source: 'idcard', idType: type, idLayout: idLayout, files: [{ name: 'ID_Card_A4_Composite.jpg', kind: 'idcard', size: file.size, pages: 1, copies: 1, colorMode: 'Color', rangeMode: 'all', range: '', nup: 1, spp: 1, paperSize: 'a4', downloadURL: url, storagePath: ref.fullPath }], printLog: [] };
       return db.ref('shops/' + SHOP_ID + '/orders/' + orderKey).set(order).then(function () { return orderNo; });
     });
   }).then(function (orderNo) {
