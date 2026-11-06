@@ -256,9 +256,14 @@ function buildWordComScript(filePath, opts) {
     lines.push('  try { $d.PageSetup.Orientation = ' + (opts.orientation === 'landscape' ? 1 : 0) + ' } catch {}');
   }
   if (opts.paperSize && opts.paperSize !== 'a4') {
-    const WORD_PAPER = { letter: 1, legal: 5, a5: 11 };
+    const WORD_PAPER = { letter: 1, legal: 5, a5: 11, a3: 8 };
     const pv = WORD_PAPER[opts.paperSize];
     if (pv) lines.push('  try { $d.PageSetup.PaperSize = ' + pv + ' } catch {}');
+    else {
+      const WORD_CUSTOM = { a2: [1191, 1684], a1: [1684, 2384], '4x6': [288, 432] };
+      const cw = WORD_CUSTOM[opts.paperSize];
+      if (cw) lines.push('  try { $d.PageSetup.PaperSize = 41; $d.PageSetup.PageWidth = ' + cw[0] + '; $d.PageSetup.PageHeight = ' + cw[1] + ' } catch {}');
+    }
   }
   if (opts.margins === 'narrow') {
     lines.push('  try { $d.PageSetup.TopMargin = 36; $d.PageSetup.BottomMargin = 36; $d.PageSetup.LeftMargin = 36; $d.PageSetup.RightMargin = 36 } catch {}');
@@ -488,7 +493,7 @@ const IMG_PS_SETTINGS = `
   try { if ($Orient -eq 'landscape') { $pd.DefaultPageSettings.Landscape = $true } elseif ($Orient -eq 'portrait') { $pd.DefaultPageSettings.Landscape = $false } } catch {}
   try {
     if ($Paper -ne 'a4') {
-      $dims = @{ 'letter' = @(850, 1100); 'legal' = @(850, 1400); 'a5' = @(583, 827) }[$Paper]
+      $dims = @{ 'letter' = @(850, 1100); 'legal' = @(850, 1400); 'a5' = @(583, 827); 'a3' = @(1169, 1654); 'a2' = @(1654, 2339); 'a1' = @(2339, 3311); '4x6' = @(400, 600) }[$Paper]
       if ($dims) { $pd.DefaultPageSettings.PaperSize = New-Object System.Drawing.Printing.PaperSize($Paper, $dims[0], $dims[1]) }
     }
   } catch {}

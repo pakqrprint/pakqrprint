@@ -134,7 +134,7 @@ async function printOrder(orderKey, order, settings) {
         copies: f.copies || 1,
         colorMode: f.colorMode || order.colorMode || 'BW',
         duplex: false,
-        paperSize: 'A4',
+        paperSize: (f.paperSize || order.paperSize || 'A4'),
         range: (f.rangeMode === 'some' ? (f.range || '') : (f.rangeMode === 'first' ? '1-1' : '')),
         totalPages: f.pages || 0,
         slidesPerPage: f.spp || 1,
