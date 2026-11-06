@@ -5,12 +5,12 @@ body { margin: 0; font-family: Arial, Helvetica, sans-serif; background: #f3f4f8
 a { color: #4f46e5; }
 
 /* ---------- customer hero ---------- */
-.hero { background: linear-gradient(135deg, #1e1b4b 0%, #3730a3 45%, #4f46e5 75%, #6d28d9 100%); color: #fff; padding: 30px 16px 72px; text-align: center; border-radius: 0 0 30px 30px; }
-.hero .pill { display: inline-flex; align-items: center; gap: 7px; background: rgba(255,255,255,.16); border: 1px solid rgba(255,255,255,.45); padding: 7px 16px; border-radius: 20px; font-size: 14px; font-weight: 800; }
-.hero h1 { margin: 16px 0 0; font-size: 30px; font-weight: 900; line-height: 1.2; }
-.hero .sub { margin-top: 10px; font-size: 15px; color: #c7d2fe; }
-.hero-top { display: flex; justify-content: flex-end; max-width: 760px; margin: 0 auto 10px; }
-.hero-top .login-btn { color: #fff; background: rgba(255,255,255,.16); border: 1px solid rgba(255,255,255,.45); padding: 7px 14px; border-radius: 20px; font-size: 13px; font-weight: 800; text-decoration: none; }
+.hero { background: linear-gradient(135deg, #1e1b4b 0%, #3730a3 45%, #4f46e5 75%, #6d28d9 100%); color: #fff; padding: 20px 16px 52px; text-align: center; border-radius: 0 0 30px 30px; }
+.hero .pill { display: inline-flex; align-items: center; gap: 7px; background: rgba(255,255,255,.16); border: 1px solid rgba(255,255,255,.45); padding: 6px 13px; border-radius: 20px; font-size: 13px; font-weight: 800; }
+.hero h1 { margin: 12px 0 0; font-size: 24px; font-weight: 900; line-height: 1.2; }
+.hero .sub { margin-top: 8px; font-size: 14px; color: #c7d2fe; }
+.hero-top { display: flex; justify-content: flex-end; max-width: 760px; margin: 0 auto 6px; }
+.hero-top .login-btn { color: #fff; background: rgba(255,255,255,.16); border: 1px solid rgba(255,255,255,.45); padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: 800; text-decoration: none; }
 
 /* ---------- dashboard topbar (white header) ---------- */
 header.topbar { background: #fff; border-bottom: 1.5px solid #e6e8f5; color: #1e1b4b; padding: 12px 16px; display: flex; align-items: center; gap: 12px; }
@@ -33,24 +33,30 @@ header.topbar .tbtn.danger { border-color: #fecaca; color: #dc2626; background: 
 
 /* ---------- customer card ---------- */
 .cust { max-width: 480px; margin: -38px auto 0; position: relative; z-index: 2; }
-.cust .card { border-radius: 20px; box-shadow: 0 10px 30px rgba(30,27,75,.10); padding: 20px 18px; }
+.cust .card { border-radius: 20px; box-shadow: 0 10px 30px rgba(30,27,75,.10); padding: 16px 14px; }
+
+/* customer compact: smaller inputs/buttons/segments (dashboard untouched) */
+.cust input[type=text], .cust input[type=number], .cust select { padding: 11px 12px; font-size: 14px; }
+.cust .btn { padding: 13px; font-size: 16px; margin-top: 12px; }
+.cust .row2 { margin-top: 10px; }
+.cust .seg button { padding: 9px 6px; font-size: 13px; }
 
 /* tabs: grey pill container, active = white + indigo */
-.ctabs { display: flex; background: #eef0f7; border-radius: 14px; padding: 6px; margin-bottom: 16px; }
-.ctabs button { flex: 1; min-width: 0; padding: 11px 6px; border-radius: 10px; border: none; background: transparent; color: #475569; font-weight: 800; font-size: 13.5px; cursor: pointer; font-family: inherit; line-height: 1.35; }
+.ctabs { display: flex; background: #eef0f7; border-radius: 14px; padding: 6px; margin-bottom: 12px; }
+.ctabs button { flex: 1; min-width: 0; padding: 9px 6px; border-radius: 10px; border: none; background: transparent; color: #475569; font-weight: 800; font-size: 13px; cursor: pointer; font-family: inherit; line-height: 1.35; }
 .ctabs button.on { background: #fff; color: #4f46e5; box-shadow: 0 2px 8px rgba(30,27,75,.12); }
 
 /* labels + inputs */
-.cust label, .row2 label { display: block; font-size: 14px; font-weight: 800; margin-bottom: 6px; color: #1e1b4b; }
+.cust label, .row2 label { display: block; font-size: 13px; font-weight: 800; margin-bottom: 5px; color: #1e1b4b; }
 input[type=text], input[type=number], input[type=email], input[type=password], input[type=tel], select { width: 100%; padding: 13px 14px; border: 1.5px solid #d9deef; border-radius: 12px; font-size: 15px; font-family: inherit; background: #fff; color: #1e1b4b; }
 input:focus, select:focus { outline: none; border-color: #4f46e5; box-shadow: 0 0 0 3px rgba(79,70,229,.15); }
 input[type=file] { width: 100%; font-size: 13px; }
 
 /* dropzone */
-.drop { border: 2px dashed #b6c2e8; border-radius: 16px; padding: 30px 14px 26px; text-align: center; color: #312e81; cursor: pointer; background: #f7f9ff; }
+.drop { border: 2px dashed #b6c2e8; border-radius: 16px; padding: 20px 14px 18px; text-align: center; color: #312e81; cursor: pointer; background: #f7f9ff; }
 .drop.over { border-color: #4f46e5; background: #eef2ff; }
-.drop .cloud { display: block; font-size: 54px; line-height: 1; color: #4f46e5; margin-bottom: 10px; }
-.drop .dt { font-size: 19px; font-weight: 800; color: #1e1b4b; }
+.drop .cloud { display: block; font-size: 42px; line-height: 1; color: #4f46e5; margin-bottom: 8px; }
+.drop .dt { font-size: 17px; font-weight: 800; color: #1e1b4b; }
 .drop .ds { font-size: 13px; font-weight: 400; color: #64748b; margin-top: 6px; line-height: 1.5; }
 
 /* two-column rows */
@@ -63,16 +69,16 @@ input[type=file] { width: 100%; font-size: 13px; }
 .seg button.on { background: #fff; color: #4f46e5; box-shadow: 0 2px 6px rgba(30,27,75,.10); }
 
 /* ID card info box + photo boxes (label.idphoto beats the .cust label rule) */
-.idinfo { background: #eef2ff; border: 1.5px solid #dbe4ff; border-radius: 14px; padding: 14px; font-size: 14px; line-height: 1.55; color: #312e81; margin-top: 4px; }
-label.idphoto { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; border: 2px dashed #a8c6f0; background: #f0f7ff; border-radius: 14px; padding: 26px 10px; cursor: pointer; text-align: center; min-height: 152px; }
-.idphoto .cam { font-size: 34px; line-height: 1; }
-.idphoto b { font-size: 15px; color: #1e3a8a; }
+.idinfo { background: #eef2ff; border: 1.5px solid #dbe4ff; border-radius: 14px; padding: 11px; font-size: 13px; line-height: 1.55; color: #312e81; margin-top: 4px; }
+label.idphoto { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; border: 2px dashed #a8c6f0; background: #f0f7ff; border-radius: 14px; padding: 18px 10px; cursor: pointer; text-align: center; min-height: 120px; }
+.idphoto .cam { font-size: 28px; line-height: 1; }
+.idphoto b { font-size: 14px; color: #1e3a8a; }
 .idphoto small { font-size: 12px; color: #64748b; }
 .idphoto.has { border-style: solid; border-color: #4f46e5; background: #eef2ff; }
 .idprev { width: 100%; height: auto; border: 1.5px solid #dfe2f7; border-radius: 10px; margin-top: 12px; }
 
 /* file list */
-.fileitem { border: 1.5px solid #dfe2f7; border-radius: 12px; padding: 10px; margin-top: 10px; background: #fff; font-size: 13.5px; line-height: 1.6; }
+.fileitem { border: 1.5px solid #dfe2f7; border-radius: 12px; padding: 8px; margin-top: 10px; background: #fff; font-size: 13px; line-height: 1.6; }
 .fileitem .fname { font-weight: 800; color: #1e1b4b; word-break: break-word; }
 .fileitem .frow { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; align-items: center; }
 .fileitem .frow label { font-size: 12px; font-weight: 700; color: #5b5f8a; margin-bottom: 0; }
@@ -86,7 +92,7 @@ label.idphoto { display: flex; flex-direction: column; align-items: center; just
 
 /* success + confetti */
 .success { text-align: center; padding: 18px 10px; }
-.success .tok { font-size: 34px; font-weight: 900; color: #4f46e5; }
+.success .tok { font-size: 28px; font-weight: 900; color: #4f46e5; }
 .confetti { position: fixed; inset: 0; pointer-events: none; z-index: 5000; overflow: hidden; }
 .confetti i { position: absolute; top: -12px; width: 9px; height: 14px; display: block; animation: confFall 2.6s ease-in forwards; }
 @keyframes confFall { to { transform: translateY(105vh) rotate(720deg); opacity: .2; } }
