@@ -5,6 +5,86 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Pak QR Print — QR Poster (A4)</title>
 <link rel="stylesheet" href="styles.css">
+<style>
+/* Pak QR Print — QR poster v3: reference-poster layout + gold border + full A4.
+   Poster-only rules live here so index.html / dashboard.html are untouched. */
+@page { size: A4; margin: 10mm; }
+.poster {
+  width: min(794px, 96vw);
+  max-width: none;
+  margin: 18px auto;
+  padding: 0;
+  border: 7px solid #C9A227;
+  outline: 2px solid #D4AF37;
+  outline-offset: -16px;
+  border-radius: 14px;
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+  overflow: hidden;
+  print-color-adjust: exact;
+  -webkit-print-color-adjust: exact;
+}
+.pbar { height: 12px; background: linear-gradient(90deg, #6366f1, #4f46e5 45%, #06b6d4); flex: 0 0 auto; }
+.pbody { padding: 24px 40px 22px; display: flex; flex-direction: column; align-items: center; gap: 13px; flex: 1; }
+.plogo { width: 100%; display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.plogo .lft { display: flex; align-items: center; gap: 10px; }
+.plogo .tile { width: 44px; height: 44px; border-radius: 12px; background: linear-gradient(135deg, #4f46e5, #06b6d4); color: #fff; font-weight: 900; font-size: 17px; display: flex; align-items: center; justify-content: center; flex: 0 0 auto; }
+.plogo .lname { font-size: 20px; font-weight: 900; color: #1e1b4b; line-height: 1.1; }
+.plogo .lname i { font-style: normal; color: #4f46e5; }
+.plogo .ppill { background: #eef0f7; color: #475569; font-size: 11px; font-weight: 800; letter-spacing: 1px; border-radius: 20px; padding: 7px 12px; text-align: center; max-width: 110px; line-height: 1.4; }
+.poster h2 { font-size: 34px; font-weight: 900; margin: 2px 0 0; text-align: center; }
+.poster-tag { font-size: 15px; font-weight: 800; color: #4f46e5; letter-spacing: 2.5px; text-align: center; }
+.qrbox { border: 4px solid #4f46e5; border-radius: 20px; padding: 14px; background: #fff; line-height: 0; }
+#qrCanvas { width: 300px; height: 300px; image-rendering: pixelated; }
+.poster-scan { font-weight: 800; font-size: 19px; color: #4f46e5; letter-spacing: 2px; text-align: center; }
+.ppills { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+.ppills span { border: 1.5px solid #d9deef; background: #fff; color: #312e81; font-size: 13px; font-weight: 800; border-radius: 20px; padding: 6px 14px; }
+.ppills span.soft { background: #eef2ff; }
+.pdiv { display: flex; align-items: center; gap: 12px; width: 100%; color: #94a3b8; font-size: 12px; letter-spacing: 2px; font-weight: 800; }
+.pdiv:before, .pdiv:after { content: ''; flex: 1; height: 1px; background: #e2e8f0; }
+.psteps-title { font-size: 20px; font-weight: 900; text-align: center; }
+.pstep { display: flex; gap: 14px; align-items: flex-start; background: #f5f6ff; border: 1.5px solid #e2e8f0; border-radius: 14px; padding: 13px 16px; width: 100%; text-align: left; }
+.pstep .num { width: 40px; height: 40px; border-radius: 10px; background: linear-gradient(135deg, #4f46e5, #7c3aed); color: #fff; font-weight: 900; font-size: 18px; display: flex; align-items: center; justify-content: center; flex: 0 0 auto; }
+.pstep b { display: block; font-size: 15.5px; color: #1e1b4b; }
+.pstep span { display: block; font-size: 13.5px; color: #5b5f8a; line-height: 1.5; margin-top: 3px; }
+.pfoot { background: #0f172a; color: #fff; border-radius: 14px; padding: 14px 18px; width: 100%; display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.pfoot b { display: block; font-size: 16px; }
+.pfoot small { display: block; font-size: 12px; color: #94a3b8; margin-top: 2px; }
+.pfoot .fast { background: #7c3aed; color: #fff; font-size: 12px; font-weight: 800; border-radius: 20px; padding: 7px 13px; letter-spacing: .5px; white-space: nowrap; }
+.poster-credit { font-size: 13px; color: #5b5f8a; text-align: center; }
+#posterUrl, #qrNote { display: none; }
+@media (min-width: 600px) {
+  .poster { min-height: 1000px; }
+}
+@media (max-width: 520px) {
+  .pbody { padding: 18px 16px; gap: 11px; }
+  .poster h2 { font-size: 26px; }
+  #qrCanvas { width: 220px; height: 220px; }
+  .plogo .lname { font-size: 17px; }
+  .plogo .tile { width: 38px; height: 38px; font-size: 15px; }
+}
+@media print {
+  html, body { margin: 0; padding: 0; background: #fff; }
+  .poster {
+    width: auto;
+    height: 277mm;
+    min-height: 0;
+    margin: 0;
+    /* Gold border MUST print — never border:none here (a past bug removed the border in print). */
+    border: 7px solid #C9A227;
+    outline: 2px solid #D4AF37;
+    outline-offset: -16px;
+  }
+  .pbody { padding: 20px 36px 18px; gap: 10px; }
+  .poster h2 { font-size: 30px; }
+  #qrCanvas { width: 260px; height: 260px; }
+  .qrbox { padding: 12px; }
+  .pstep { padding: 10px 14px; }
+  .pstep span { font-size: 12.5px; }
+  .pfoot { padding: 11px 16px; }
+}
+</style>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 <script src="firebase-config.js"></script>
@@ -17,21 +97,38 @@
 </div>
 
 <div class="poster">
-  <div style="font-size:15px;font-weight:800;color:#4f46e5;letter-spacing:2px">PAK QR PRINT</div>
-  <h2 id="posterShop">Pak QR Print</h2>
-  <div style="font-size:15px">Print karwana hai? QR scan karein!</div>
-  <canvas id="qrCanvas" width="240" height="240" style="margin:14px auto;display:block"></canvas>
-  <div style="font-weight:800;font-size:17px">SCAN QR TO UPLOAD</div>
-  <div style="font-size:13.5px;color:#5b5f8a;margin-top:4px">PDF • JPG • PNG • Word • Excel • PowerPoint</div>
-  <div style="font-size:13.5px;color:#5b5f8a">Multiple Files • Free to Use</div>
-  <div class="steps" style="grid-template-columns:repeat(3,1fr);margin-top:16px">
-    <div><b>1</b>QR Scan Karein</div>
-    <div><b>2</b>File Upload Karein</div>
-    <div><b>3</b>Counter Se Print Lein</div>
+  <div class="pbar"></div>
+  <div class="pbody">
+    <div class="plogo">
+      <div class="lft">
+        <div class="tile">PQ</div>
+        <div class="lname">Pak <i>QR Print</i></div>
+      </div>
+      <div class="ppill">PAK QR PRINT</div>
+    </div>
+    <h2 id="posterShop">Pak QR Print</h2>
+    <div class="poster-tag">SCAN &amp; SEND YOUR FILES</div>
+    <div class="qrbox"><canvas id="qrCanvas" width="240" height="240"></canvas></div>
+    <div class="poster-scan">SCAN QR TO UPLOAD</div>
+    <div class="ppills">
+      <span>PDF</span><span>Word</span><span>Excel</span><span>Image</span><span>PowerPoint</span>
+    </div>
+    <div class="ppills">
+      <span class="soft">Multiple Files</span><span class="soft">Free to Use</span>
+    </div>
+    <div class="pdiv">HOW IT WORKS</div>
+    <div class="psteps-title">3 Simple Steps to Print</div>
+    <div class="pstep"><div class="num">1</div><div><b>Scan the QR Code</b><span>Open your mobile phone camera or scanner app and scan the QR code above.</span></div></div>
+    <div class="pstep"><div class="num">2</div><div><b>Select &amp; Upload Your Files</b><span>Pick your PDF, Word, Excel or image files, set number of copies and color mode, then tap Send.</span></div></div>
+    <div class="pstep"><div class="num">3</div><div><b>Collect Your Prints</b><span>Your document appears immediately in the print queue and prints right away!</span></div></div>
+    <div class="pfoot">
+      <div><b>Pak QR Print</b><small>QR Print System</small></div>
+      <div class="fast">FAST &amp; DIRECT</div>
+    </div>
+    <div id="posterUrl"></div>
+    <div class="hint" id="qrNote"></div>
+    <div class="poster-credit">Software developed by Sohail Abbas Marwat</div>
   </div>
-  <div id="posterUrl" style="font-size:12px;color:#5b5f8a;margin-top:14px;word-break:break-all"></div>
-  <div class="hint" id="qrNote" style="margin-top:6px"></div>
-  <div style="font-size:12px;color:#5b5f8a;margin-top:14px">Software developed by Sohail Abbas Marwat</div>
 </div>
 
 <script>

@@ -75,7 +75,7 @@ function renderStats() {
 function renderQueue() {
   var box = $('queueList'); box.innerHTML = '';
   var keys = Object.keys(orders).sort(function (a, b) { return (orders[a].createdAt || 0) - (orders[b].createdAt || 0); });
-  if (!keys.length) { box.innerHTML = '<p class="hint" style="margin-top:10px">No Customer Uploads Yet — Share your customer link or show your counter QR Code to receive instant print files.</p>'; renderStats(); return; }
+  if (!keys.length) { box.innerHTML = '<div class="qempty"><div class="qfolder">📁</div><b>No Customer Uploads Yet</b><p>Share your customer link or show your counter QR Code to receive instant print files.</p></div>'; renderStats(); return; }
   keys.forEach(function (k) {
     var o = orders[k];
     var d = document.createElement('div'); d.className = 'qitem';
@@ -147,6 +147,16 @@ function openA4Modal(o) {
   applyA4Transform();
 }
 function closeA4Modal() { $('a4Modal').style.display = 'none'; a4Order = null; }
+
+// ---------- Shop Counter QR modal ----------
+function openQrModal() {
+  $('qrShopName').textContent = settings.shopName || 'Pak QR Print';
+  var ok = false;
+  try { ok = drawQRToCanvas($('qrModalCanvas'), customerUrl()); } catch (e) { ok = false; }
+  if (!ok) { $('qrShopName').textContent = 'QR nahi ban saka — link check karein.'; }
+  $('qrModal').style.display = 'flex';
+}
+function closeQrModal() { $('qrModal').style.display = 'none'; }
 
 // ---------- settings / toggles ----------
 function bindToggle(id, key) {
@@ -238,6 +248,27 @@ document.addEventListener('DOMContentLoaded', function () {
     $('loginMsg').textContent = 'Login ho raha hai...';
     auth.signInWithEmailAndPassword(em, pw).then(function () { startDashboard(); }).catch(function (e) { $('loginMsg').textContent = 'Login nahi hua: ' + e.message; });
   });
+  // Shopkeeper Portal tabs
+  document.querySelectorAll('#portalTabs button').forEach(function (b) {
+    b.addEventListener('click', function () {
+      document.querySelectorAll('#portalTabs button').forEach(function (x) { x.classList.remove('on'); });
+      b.classList.add('on');
+      var t = b.getAttribute('data-ptab');
+      $('portalLogin').style.display = t === 'login' ? 'block' : 'none';
+      $('portalCreate').style.display = t === 'create' ? 'block' : 'none';
+    });
+  });
+  // Create Account: Firebase Auth user + shop name settings mein save
+  $('createBtn').addEventListener('click', function () {
+    var em = $('createEmail').value.trim(), pw = $('createPass').value;
+    var shop = $('createShop').value.trim();
+    if (!em || pw.length < 6) { $('createMsg').textContent = 'Email likhein aur password kam se kam 6 harf ka ho.'; return; }
+    $('createMsg').textContent = 'Account ban raha hai...';
+    auth.createUserWithEmailAndPassword(em, pw).then(function () {
+      if (shop) settingsRef().update({ shopName: shop }).catch(function () { /* shop name save na ho to bhi account ban gaya */ });
+      startDashboard();
+    }).catch(function (e) { $('createMsg').textContent = 'Account nahi bana: ' + e.message; });
+  });
   auth.onAuthStateChanged(function (u) { if (u) startDashboard(); });
   $('logoutBtn').addEventListener('click', function () { auth.signOut().then(function () { location.reload(); }); });
   $('copyLinkBtn').addEventListener('click', function () {
@@ -245,7 +276,16 @@ document.addEventListener('DOMContentLoaded', function () {
     if (navigator.clipboard) navigator.clipboard.writeText(u).then(function () { alert('Customer link copy ho gaya:\n' + u); });
     else prompt('Customer link copy karein:', u);
   });
-  $('qrBtn').addEventListener('click', function () { window.open('qr-poster.html?shop=' + SHOP_ID, '_blank'); });
+  $('qrBtn').addEventListener('click', function () { openQrModal(); });
+  $('qrCloseBtn').addEventListener('click', closeQrModal);
+  $('qrModal').addEventListener('click', function (e) { if (e.target === $('qrModal')) closeQrModal(); });
+  $('qrDownloadBtn').addEventListener('click', function () {
+    var a = document.createElement('a');
+    a.href = $('qrModalCanvas').toDataURL('image/png');
+    a.download = 'Pak-QR-Print-QR.png';
+    a.click();
+  });
+  $('qrPrintBtn').addEventListener('click', function () { window.open('qr-poster.html?shop=' + SHOP_ID, '_blank'); });
   $('posterBtn').addEventListener('click', function () { window.open('qr-poster.html?shop=' + SHOP_ID, '_blank'); });
   $('homeBtn').addEventListener('click', function () { location.href = 'index.html?shop=' + SHOP_ID; });
   $('duInput').addEventListener('change', function () { directUpload($('duInput').files); $('duInput').value = ''; });

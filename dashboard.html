@@ -10,64 +10,106 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 <script src="firebase-config.js"></script>
 <script src="supabase-config.js"></script>
+<script src="qr.js"></script>
 <script src="dashboard.js"></script>
 </head>
 <body>
 <header class="topbar">
-  <div class="brand">Pak QR Print</div>
+  <div class="logo">PQ</div>
+  <div class="brandtxt"><b>Pak QR Print</b><small>pakqrprint.github.io</small></div>
   <div class="spacer"></div>
-  <button type="button" id="homeBtn">Home Page</button>
-  <button type="button" id="logoutBtn" style="display:none">Logout</button>
+  <button type="button" class="tbtn" id="homeBtn">⌂ Home Page</button>
+  <button type="button" class="tbtn danger" id="logoutBtn" style="display:none">⇤ Logout</button>
 </header>
 
-<div class="wrap">
+<div class="wrap dash">
   <div class="err" id="setupErr"></div>
 
-  <div class="card" id="authBox" style="max-width:420px;margin:24px auto">
-    <h2>Shopkeeper Login</h2>
-    <p class="hint">Apni dukaan ka email aur password likhein (Firebase Auth mein bana hua account).</p>
-    <div style="margin-top:10px"><label style="display:block;font-size:13px;font-weight:700;margin-bottom:5px">Email</label><input type="email" id="loginEmail" placeholder="dukaan@example.com"></div>
-    <div style="margin-top:10px"><label style="display:block;font-size:13px;font-weight:700;margin-bottom:5px">Password</label><input type="password" id="loginPass" placeholder="Password"></div>
-    <button class="btn" id="loginBtn" type="button">Login to Dashboard</button>
-    <p class="hint" id="loginMsg" style="margin-top:10px"></p>
-    <p class="hint">Pehli dafa? Hidayat file ka Step 2 dekhein — Firebase Console mein shopkeeper account banana hai.</p>
+  <div class="card portal" id="authBox">
+    <h2 class="ptitle">Shopkeeper Portal</h2>
+    <p class="psub">Login or create an account to manage your live print queue</p>
+    <div class="ptabs" id="portalTabs">
+      <button type="button" class="on" data-ptab="login">➜ Shopkeeper Login</button>
+      <button type="button" data-ptab="create">👤+ Create Account</button>
+    </div>
+
+    <div id="portalLogin">
+      <div class="fld">
+        <label>Email, Shop Slug or Username</label>
+        <div class="inp"><span>✉</span><input type="email" id="loginEmail" placeholder="Enter your registered email or shop name"></div>
+      </div>
+      <div class="fld">
+        <label>Password</label>
+        <div class="inp"><span>🔒</span><input type="password" id="loginPass" placeholder="Enter your password"></div>
+      </div>
+      <button class="btn" id="loginBtn" type="button">➜ Login to Dashboard</button>
+      <p class="hint" id="loginMsg" style="margin-top:10px"></p>
+    </div>
+
+    <div id="portalCreate" style="display:none">
+      <div class="fld">
+        <label>Your Name</label>
+        <div class="inp"><span>👤</span><input type="text" id="createName" placeholder="e.g. Ahmed Abbas"></div>
+      </div>
+      <div class="fld">
+        <label>Print Shop / Cyber Cafe Name</label>
+        <div class="inp"><span>🏪</span><input type="text" id="createShop" placeholder="e.g. Pak QR Print"></div>
+      </div>
+      <div class="fld">
+        <label>Email Address</label>
+        <div class="inp"><span>✉</span><input type="email" id="createEmail" placeholder="e.g. shop@gmail.com"></div>
+      </div>
+      <div class="fld">
+        <label>Mobile Number (Optional)</label>
+        <div class="inp"><span>📞</span><input type="tel" id="createMobile" placeholder="e.g. 03123456789"></div>
+      </div>
+      <div class="fld">
+        <label>Create Password</label>
+        <div class="inp"><span>🔒</span><input type="password" id="createPass" placeholder="Choose a secure password"></div>
+      </div>
+      <button class="btn" id="createBtn" type="button">👤+ Create Account &amp; Open Dashboard</button>
+      <p class="hint" id="createMsg" style="margin-top:10px"></p>
+    </div>
   </div>
 
   <div id="dashBox" style="display:none">
     <div class="card">
-      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
-        <h2 style="margin:0"><span data-shopname>Pak QR Print</span></h2>
-        <span class="hub-live"><span class="dot">●</span> Live Counter Queue Active</span>
+      <div class="shoprow">
+        <div class="shopicon">🏪</div>
+        <div>
+          <div class="shopname"><span data-shopname>Pak QR Print</span></div>
+          <span class="hub-live"><span class="dot">●</span> Live Counter Queue Active</span>
+        </div>
       </div>
       <div class="hubbtns">
-        <button type="button" id="duBtn">Direct Upload File</button>
-        <button type="button" id="copyLinkBtn">Copy Customer Link</button>
-        <button type="button" id="qrBtn">View / Download QR</button>
-        <button type="button" id="posterBtn">QR Poster (A4)</button>
+        <button type="button" class="primary" id="duBtn">☁ + Direct Upload File</button>
+        <button type="button" id="copyLinkBtn">⧉ Copy Customer Link</button>
+        <button type="button" id="qrBtn">▦ View / Download QR</button>
+        <button type="button" id="posterBtn">🖨 QR Poster (A4)</button>
       </div>
       <input type="file" id="duInput" multiple accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx,.ppt,.pptx" style="display:none">
-
-      <div style="margin-top:12px">
-        <div class="hubtog"><span>Auto-Open Layout</span><label class="switch"><input type="checkbox" id="togAutoOpen"><span class="sl"></span></label></div>
-        <div class="hubtog"><span>Auto-Print Mode</span><label class="switch"><input type="checkbox" id="togAutoPrint"><span class="sl"></span></label></div>
-        <div class="hubtog"><span>Permission Mode</span><label class="switch"><input type="checkbox" id="togPerm"><span class="sl"></span></label></div>
-        <div class="hubtog"><span>Auto-Delete</span><select id="selAutoDel" style="width:auto"><option value="0">Off</option><option value="1">1 Minute</option><option value="5">5 Minutes</option><option value="15">15 Minutes</option></select></div>
-        <div class="hubtog"><span>Queue Active</span><span class="hub-live"><span class="dot">●</span> Active</span></div>
-      </div>
-
-      <div class="hubstats">
-        <div class="hubstat"><b id="stWalkin">0</b><span>Walk-in Customers</span></div>
-        <div class="hubstat"><b id="stPending">0</b><span>Pending Files</span></div>
-        <div class="hubstat"><b id="stPrinted">0</b><span>Printed Files</span></div>
-        <div class="hubstat"><b id="stFailed">0</b><span>Rejected / Failed</span></div>
-      </div>
-      <button class="btn ghost" id="clearBtn" type="button" style="margin-top:12px">Clear Completed Jobs</button>
     </div>
 
     <div class="card">
-      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
-        <h2 style="margin:0">Live Document Print Queue</h2>
-        <button class="btn small" id="refreshBtn" type="button">Refresh</button>
+      <div class="hubtog"><span>Auto-Open Layout</span><label class="switch"><input type="checkbox" id="togAutoOpen"><span class="sl"></span></label></div>
+      <div class="hubtog"><span>Auto-Print Mode</span><label class="switch"><input type="checkbox" id="togAutoPrint"><span class="sl"></span></label></div>
+      <div class="hubtog"><span>Permission Mode</span><label class="switch"><input type="checkbox" id="togPerm"><span class="sl"></span></label></div>
+      <div class="hubtog"><span>↻ Auto-Delete</span><select id="selAutoDel"><option value="0">Off</option><option value="1">1 Minute</option><option value="5">5 Minutes</option><option value="15">15 Minutes</option></select></div>
+      <div class="hubtog"><span class="qactive">⏸ Queue Active</span></div>
+      <button class="clearbtn" id="clearBtn" type="button">🧹 Clear Completed Jobs</button>
+    </div>
+
+    <div class="stats">
+      <div class="stat"><span class="sic purple">👥</span><span><b id="stWalkin">0</b><i>Walk-in Customers</i></span></div>
+      <div class="stat"><span class="sic amber">⏳</span><span><b id="stPending">0</b><i>Pending Files</i></span></div>
+      <div class="stat"><span class="sic green">✅</span><span><b id="stPrinted">0</b><i>Printed Files</i></span></div>
+      <div class="stat"><span class="sic red">❌</span><span><b id="stFailed">0</b><i>Rejected / Failed</i></span></div>
+    </div>
+
+    <div class="card">
+      <div class="qhead2">
+        <h2><span class="lay">▦</span>Live Document Print Queue</h2>
+        <button class="btn small ghost" id="refreshBtn" type="button">↻ Refresh</button>
       </div>
       <div id="queueList"></div>
     </div>
@@ -80,6 +122,24 @@
       </div>
       <button class="btn" id="saveSetBtn" type="button">Save Settings</button>
       <p class="hint" style="margin-top:10px">Printer: dukaan ke PC par print agent chal raha hona chahiye (print-agent folder dekhein). Printer ka naam yahan waisa hi likhein jaisa Windows mein hai — khaali ho to default printer use hoga.</p>
+    </div>
+  </div>
+
+  <p class="hint" style="text-align:center;margin:16px 0">Software developed by Sohail Abbas Marwat</p>
+</div>
+
+<div class="qrmodal" id="qrModal" style="display:none">
+  <div class="qrbox">
+    <div class="qrtitle"><span>📄 Shop Counter QR Code</span><button type="button" id="qrCloseBtn">✕</button></div>
+    <p class="hint" style="margin:8px 0 0">Display this at your counter so customers can scan &amp; send files.</p>
+    <div class="qrinner">
+      <b id="qrShopName">Pak QR Print</b>
+      <canvas id="qrModalCanvas" width="240" height="240"></canvas>
+      <span class="hint">Scan with phone camera to upload</span>
+    </div>
+    <div class="qrbtns">
+      <button type="button" class="btn" id="qrDownloadBtn">⬇ Download QR PNG</button>
+      <button type="button" class="btn ghost" id="qrPrintBtn">🖨 Print A4 Poster</button>
     </div>
   </div>
 </div>

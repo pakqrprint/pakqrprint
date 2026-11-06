@@ -340,7 +340,19 @@ document.addEventListener('DOMContentLoaded', function () {
   $('sendBtn').addEventListener('click', sendOrder);
   // ID card
   segInit('segIdLayout', function (v) { idLayout = v; idCompositeReady = false; });
-  ['idFront', 'idBack'].forEach(function (id) { var el = $(id); if (el) el.addEventListener('change', function () { idCompositeReady = false; }); });
+  [['idFront', 'frontBox', 'Choose Front'], ['idBack', 'backBox', 'Choose Back']].forEach(function (pair) {
+    var el = $(pair[0]); if (!el) return;
+    el.addEventListener('change', function () {
+      idCompositeReady = false;
+      var box = $(pair[1]);
+      if (box) {
+        var f = el.files && el.files[0];
+        var b = box.querySelector('b');
+        if (f) { box.classList.add('has'); if (b) b.textContent = f.name; }
+        else { box.classList.remove('has'); if (b) b.textContent = pair[2]; }
+      }
+    });
+  });
   $('idMakeBtn').addEventListener('click', function () {
     var msg = $('idMsg');
     var f = $('idFront').files && $('idFront').files[0];
@@ -349,6 +361,7 @@ document.addEventListener('DOMContentLoaded', function () {
     msg.textContent = 'Composite ban raha hai...';
     Promise.all([loadIdImage(f), loadIdImage(bk)]).then(function (ims) {
       drawIdCard(ims[0], ims[1], $('idType').value, idLayout);
+      $('idCardCanvas').style.display = 'block';
       $('idCardCanvas').toBlob(function (blob) { idCompositeBlob = blob; idCompositeReady = true; msg.textContent = 'A4 Composite tayyar hai — upar preview dekhein, phir "Send ID Card to Shop" dabayein.'; }, 'image/jpeg', 0.92);
     }).catch(function () { msg.textContent = 'Photo nahi khuli — doosri photo try karein.'; });
   });
