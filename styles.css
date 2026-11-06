@@ -9,6 +9,8 @@ a { color: #4f46e5; }
 .hero .pill { display: inline-flex; align-items: center; gap: 7px; background: rgba(255,255,255,.16); border: 1px solid rgba(255,255,255,.45); padding: 7px 16px; border-radius: 20px; font-size: 14px; font-weight: 800; }
 .hero h1 { margin: 16px 0 0; font-size: 30px; font-weight: 900; line-height: 1.2; }
 .hero .sub { margin-top: 10px; font-size: 15px; color: #c7d2fe; }
+.hero-top { display: flex; justify-content: flex-end; max-width: 760px; margin: 0 auto 10px; }
+.hero-top .login-btn { color: #fff; background: rgba(255,255,255,.16); border: 1px solid rgba(255,255,255,.45); padding: 7px 14px; border-radius: 20px; font-size: 13px; font-weight: 800; text-decoration: none; }
 
 /* ---------- dashboard topbar (white header) ---------- */
 header.topbar { background: #fff; border-bottom: 1.5px solid #e6e8f5; color: #1e1b4b; padding: 12px 16px; display: flex; align-items: center; gap: 12px; }
