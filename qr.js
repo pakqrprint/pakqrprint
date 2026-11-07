@@ -235,9 +235,34 @@ function drawQRToCanvas(cv, text) {
   var size = cell * (n + quiet * 2);
   cv.width = size; cv.height = size;
   ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, size, size);
-  ctx.fillStyle = '#000000';
+  ctx.fillStyle = '#4f46e5'; // v3.25: QR colourful (brand purple) - scan safe, decode-verified
   for (var r = 0; r < n; r++) for (var c = 0; c < n; c++)
     if (matrix[r][c]) ctx.fillRect((c + quiet) * cell, (r + quiet) * cell, cell, cell);
   return true;
 }
-if (typeof module !== 'undefined' && module.exports) { module.exports = { makeQR: makeQR, drawQRToCanvas: drawQRToCanvas }; }
+// v3.25: centre badge (poster + modal + download, sab jagah aik hi code).
+// QR level H hai, is liye badge ke saath bhi scan hota hai.
+function drawQRBadge(cv) {
+  var cx = cv.getContext('2d');
+  var W = cv.width, H = cv.height;
+  var bw = Math.round(W * 0.22), bh = Math.round(H * 0.19);
+  var bx = (W - bw) / 2, by = (H - bh) / 2, rr = 7;
+  cx.save();
+  cx.beginPath();
+  cx.moveTo(bx + rr, by);
+  cx.arcTo(bx + bw, by, bx + bw, by + bh, rr);
+  cx.arcTo(bx + bw, by + bh, bx, by + bh, rr);
+  cx.arcTo(bx, by + bh, bx, by, rr);
+  cx.arcTo(bx, by, bx + bw, by, rr);
+  cx.closePath();
+  cx.fillStyle = '#ffffff'; cx.fill();
+  cx.lineWidth = 2; cx.strokeStyle = '#4f46e5'; cx.stroke();
+  cx.textAlign = 'center'; cx.textBaseline = 'middle';
+  cx.font = '900 12px Arial, sans-serif';
+  cx.fillStyle = '#1e1b4b';
+  cx.fillText('Pak QR', W / 2, by + bh * 0.32);
+  cx.fillStyle = '#4f46e5';
+  cx.fillText('Print', W / 2, by + bh * 0.70);
+  cx.restore();
+}
+if (typeof module !== 'undefined' && module.exports) { module.exports = { makeQR: makeQR, drawQRToCanvas: drawQRToCanvas, drawQRBadge: drawQRBadge }; }

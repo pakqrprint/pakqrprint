@@ -200,6 +200,7 @@ function openQrModal() {
   $('qrShopName').textContent = settings.shopName || 'Pak QR Print';
   var ok = false;
   try { ok = drawQRToCanvas($('qrModalCanvas'), customerUrl()); } catch (e) { ok = false; }
+  if (ok) { try { drawQRBadge($('qrModalCanvas')); } catch (e) {} } // v3.25: modal QR bhi poster jaisa (badge)
   if (!ok) { $('qrShopName').textContent = 'QR could not be made — check the link.'; }
   $('qrModal').style.display = 'flex';
 }
@@ -327,34 +328,9 @@ document.addEventListener('DOMContentLoaded', function () {
   $('qrCloseBtn').addEventListener('click', closeQrModal);
   $('qrModal').addEventListener('click', function (e) { if (e.target === $('qrModal')) closeQrModal(); });
   $('qrDownloadBtn').addEventListener('click', function () {
-    // v3.23: download wale QR par bhi centre badge (poster jaisa) - QR level H hai, scan safe hai.
-    var src = $('qrModalCanvas');
-    var cv = document.createElement('canvas');
-    cv.width = src.width; cv.height = src.height;
-    var cx = cv.getContext('2d');
-    cx.drawImage(src, 0, 0);
-    var W = cv.width, H = cv.height;
-    var bw = Math.round(W * 0.22), bh = Math.round(H * 0.19);
-    var bx = (W - bw) / 2, by = (H - bh) / 2, rr = 7;
-    cx.save();
-    cx.beginPath();
-    cx.moveTo(bx + rr, by);
-    cx.arcTo(bx + bw, by, bx + bw, by + bh, rr);
-    cx.arcTo(bx + bw, by + bh, bx, by + bh, rr);
-    cx.arcTo(bx, by + bh, bx, by, rr);
-    cx.arcTo(bx, by, bx + bw, by, rr);
-    cx.closePath();
-    cx.fillStyle = '#ffffff'; cx.fill();
-    cx.lineWidth = 2; cx.strokeStyle = '#4f46e5'; cx.stroke();
-    cx.textAlign = 'center'; cx.textBaseline = 'middle';
-    cx.font = '900 12px Arial, sans-serif';
-    cx.fillStyle = '#1e1b4b';
-    cx.fillText('Pak QR', W / 2, by + bh * 0.32);
-    cx.fillStyle = '#4f46e5';
-    cx.fillText('Print', W / 2, by + bh * 0.70);
-    cx.restore();
+    // v3.25: modal canvas par badge pehle se hai (openQrModal) - seedha download karein.
     var a = document.createElement('a');
-    a.href = cv.toDataURL('image/png');
+    a.href = $('qrModalCanvas').toDataURL('image/png');
     a.download = 'Pak-QR-Print-QR.png';
     a.click();
   });

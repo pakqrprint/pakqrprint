@@ -151,33 +151,8 @@
   document.getElementById('posterUrl').textContent = url;
   var done = false;
   try { done = drawQRToCanvas(document.getElementById('qrCanvas'), url); } catch (e) { done = false; }
-  // v3.22: QR ke centre mein chhota 'Pak QR Print' badge (level H - scan safe, decode-verified).
-  if (done) {
-    try {
-      var cvb = document.getElementById('qrCanvas');
-      var cx = cvb.getContext('2d');
-      var W = cvb.width, H = cvb.height;
-      var bw = Math.round(W * 0.22), bh = Math.round(H * 0.19);
-      var bx = (W - bw) / 2, by = (H - bh) / 2, rr = 7;
-      cx.save();
-      cx.beginPath();
-      cx.moveTo(bx + rr, by);
-      cx.arcTo(bx + bw, by, bx + bw, by + bh, rr);
-      cx.arcTo(bx + bw, by + bh, bx, by + bh, rr);
-      cx.arcTo(bx, by + bh, bx, by, rr);
-      cx.arcTo(bx, by, bx + bw, by, rr);
-      cx.closePath();
-      cx.fillStyle = '#ffffff'; cx.fill();
-      cx.lineWidth = 2; cx.strokeStyle = '#4f46e5'; cx.stroke();
-      cx.textAlign = 'center'; cx.textBaseline = 'middle';
-      cx.font = '900 12px Arial, sans-serif';
-      cx.fillStyle = '#1e1b4b';
-      cx.fillText('Pak QR', W / 2, by + bh * 0.32);
-      cx.fillStyle = '#4f46e5';
-      cx.fillText('Print', W / 2, by + bh * 0.70);
-      cx.restore();
-    } catch (e) {}
-  }
+  // v3.25: centre badge (shared helper, qr.js) - poster + modal + download sab aik jaisa.
+  if (done) { try { drawQRBadge(document.getElementById('qrCanvas')); } catch (e) {} }
   document.getElementById('qrNote').textContent = done ? 'QR is ready — scan it with your phone camera to test.' : 'QR could not be made — the link is too long or the customer URL is not correct.';
   if (!ok) {
     document.getElementById('posterMsg').textContent = 'Note: firebase-config.js is not filled yet — the shop name is showing as default. Fill the config as per the guide and the name will appear.';
