@@ -131,7 +131,7 @@ label.idphoto { display: flex; flex-direction: column; align-items: center; just
 .switch input:checked + .sl { background: #22c55e; }
 .switch input:checked + .sl:before { transform: translateX(24px); }
 
-/* stats: icon left + number + label; mobile 1 col, desktop 2x2 */
+/* stats: icon left + number + label; 2x2 on mobile and desktop */
 .stats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 10px; }
 .stat { background: #fff; border: 1.5px solid #e6e8f5; border-radius: 16px; padding: 13px 12px; display: flex; align-items: center; gap: 10px; box-shadow: 0 2px 8px rgba(30,27,75,.05); }
 .sic { width: 44px; height: 44px; border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 22px; flex: 0 0 auto; }
@@ -220,7 +220,11 @@ label.idphoto { display: flex; flex-direction: column; align-items: center; just
   .ctabs button { font-size: 12.5px; padding: 10px 4px; }
   .hubbtns { flex-direction: column; }
   .hubbtns button { width: 100%; }
-  .stats { grid-template-columns: 1fr; }
+  .stats { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+  .stat { padding: 10px 8px; gap: 8px; border-radius: 14px; }
+  .sic { width: 36px; height: 36px; border-radius: 11px; font-size: 18px; }
+  .stat b { font-size: 21px; }
+  .stat i { font-size: 10px; letter-spacing: .3px; }
   .qrbtns { flex-direction: column; }
   .a4sheet img, .a4sheet canvas { max-height: 380px; }
   header.topbar { gap: 8px; padding: 8px 10px; }
