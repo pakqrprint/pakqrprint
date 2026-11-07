@@ -1,4 +1,4 @@
-// Pak QR Print - Shopkeeper Dashboard (GitHub Pages + Firebase)
+// Pak QR Print - Admin Dashboard (GitHub Pages + Firebase)
 // Login: Firebase Auth (email/password). Queue: Realtime Database.
 // Auto-Open: naya order aate hi A4 preview modal khud khul jata hai.
 // Print: dukaan ke PC par print agent karta hai (status se).
@@ -163,7 +163,7 @@ function browserPrint() {
   if (!area) { area = document.createElement('div'); area.id = 'printArea'; document.body.appendChild(area); }
   area.innerHTML = '';
   var done = false;
-  function goPrint() { if (!done) { done = true; window.print(); } }
+  function goPrint() { if (!done) { done = true; document.body.classList.add('browser-printing'); window.print(); } } // v3.20: class tabhi lagayein jab Browser Print ho - warna poster blank print hota
   if (isImg) {
     var im = document.createElement('img');
     im.alt = f.name || 'print';
@@ -295,7 +295,7 @@ document.addEventListener('DOMContentLoaded', function () {
     $('loginMsg').textContent = 'Logging in...';
     auth.signInWithEmailAndPassword(em, pw).then(function () { startDashboard(); }).catch(function (e) { $('loginMsg').textContent = 'Login failed: ' + e.message; });
   });
-  // Shopkeeper Portal tabs
+  // Admin Portal tabs
   document.querySelectorAll('#portalTabs button').forEach(function (b) {
     b.addEventListener('click', function () {
       document.querySelectorAll('#portalTabs button').forEach(function (x) { x.classList.remove('on'); });
@@ -354,7 +354,7 @@ document.addEventListener('DOMContentLoaded', function () {
   $('a4Rotate').addEventListener('click', function () { a4Rot = (a4Rot + 90) % 360; applyA4Transform(); });
   $('a4ViewBtn').addEventListener('click', function () { if (a4ViewUrl) window.open(a4ViewUrl, '_blank'); });
   $('a4BrowserBtn').addEventListener('click', browserPrint);
-  window.addEventListener('afterprint', function () { var a = $('printArea'); if (a) a.innerHTML = ''; });
+  window.addEventListener('afterprint', function () { document.body.classList.remove('browser-printing'); var a = $('printArea'); if (a) a.innerHTML = ''; });
   $('a4Modal').addEventListener('click', function (e) { if (e.target === $('a4Modal')) closeA4Modal(); });
 });
 })();

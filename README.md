@@ -10,7 +10,7 @@ Firebase Realtime Database / Auth par hain (Firebase Storage istemal nahi hota).
 ## Structure
 
 - `index.html` — Customer page (Standard Documents/Photos + ID Card 2-in-1)
-- `dashboard.html` — Shopkeeper dashboard (login, Live Queue, Auto-Open, toggles)
+- `dashboard.html` — Admin dashboard (login, Live Queue, Auto-Open, toggles)
 - `qr-poster.html` — A4 QR poster (counter ke liye)
 - `styles.css`, `customer.js`, `dashboard.js`, `qr.js` — frontend
 - `firebase-config.js` — **TEMPLATE: apni Firebase config yahan bharna lazmi hai**

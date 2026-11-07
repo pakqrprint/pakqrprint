@@ -307,7 +307,7 @@ function sendOrder() {
     confetti();
   }).catch(function (e) {
     alert('Order could not be sent: ' + (e && e.message ? e.message : e) + '\nCheck the internet and try again.');
-    btn.disabled = false; btn.textContent = 'Send Files to Shopkeeper';
+    btn.disabled = false; btn.textContent = 'Send Files to Admin';
   });
 }
 

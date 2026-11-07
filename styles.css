@@ -166,7 +166,7 @@ label.idphoto { display: flex; flex-direction: column; align-items: center; just
 .badge.printed, .badge.done { background: #dcfce7; color: #14532d; }
 .badge.failed { background: #fee2e2; color: #991b1b; }
 
-/* ---------- Shopkeeper Portal ---------- */
+/* ---------- Admin Portal ---------- */
 .portal { max-width: 480px; margin: 16px auto; padding: 20px 18px; border-radius: 20px; }
 .ptitle { text-align: center; font-size: 24px; font-weight: 900; margin: 0; }
 .psub { text-align: center; color: #64748b; font-size: 14.5px; margin: 6px 0 14px; line-height: 1.5; }
@@ -242,10 +242,11 @@ label.idphoto { display: flex; flex-direction: column; align-items: center; just
 @media print {
   body { background: #fff; }
   .hero, .topbar, .btn, .a4tools, .no-print, .qrmodal { display: none !important; }
-  /* v3.19: Browser Print - sirf #printArea (PDF pages / photo) print ho, baaki sab chhupa ho */
-  body * { visibility: hidden; }
-  #printArea, #printArea * { visibility: visible; }
-  #printArea { display: block !important; position: absolute; left: 0; top: 0; width: 100%; }
-  #printArea canvas, #printArea img { display: block; max-width: 100%; height: auto; margin: 0 auto; page-break-after: always; }
-  #printArea canvas:last-child, #printArea img:last-child { page-break-after: auto; }
+  /* v3.19: Browser Print - sirf #printArea (PDF pages / photo) print ho, baaki sab chhupa ho.
+     v3.20 FIX: sirf body.browser-printing par - warna POSTER bhi blank print hota (body * sab chhupa deta tha) */
+  body.browser-printing * { visibility: hidden; }
+  body.browser-printing #printArea, body.browser-printing #printArea * { visibility: visible; }
+  body.browser-printing #printArea { display: block !important; position: absolute; left: 0; top: 0; width: 100%; }
+  body.browser-printing #printArea canvas, body.browser-printing #printArea img { display: block; max-width: 100%; height: auto; margin: 0 auto; page-break-after: always; }
+  body.browser-printing #printArea canvas:last-child, body.browser-printing #printArea img:last-child { page-break-after: auto; }
 }
