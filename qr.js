@@ -1,17 +1,20 @@
 // Pak QR Print - QR encoder (khud ka, koi library/API nahi)
+// Error correction level H (30% recovery) - taake QR ke centre mein chhota badge bhi scan ho.
 // Offline v1 (PakQRPrint-v1.html) se liya gaya - wahi code jo OpenCV se
 // decode karke verify hua tha (5/5 URLs exact).
-// makeQR(text) -> matrix (true/false) ya null (agar text lamba ho).
+// makeQR(text) -> matrix (true/false) ya null (agar text lamba ho). Level H, versions 1-8.
 // drawQRToCanvas(canvas, text) -> canvas par QR bana deta hai.
 var QR_SPEC = {
-  1: { total: 26, data: 19, ec: 7, blocks: [19], align: [], rem: 0 },
-  2: { total: 44, data: 34, ec: 10, blocks: [34], align: [6, 18], rem: 7 },
-  3: { total: 70, data: 55, ec: 15, blocks: [55], align: [6, 22], rem: 7 },
-  4: { total: 100, data: 80, ec: 20, blocks: [80], align: [6, 26], rem: 7 },
-  5: { total: 134, data: 108, ec: 26, blocks: [108], align: [6, 30], rem: 7 },
-  6: { total: 172, data: 136, ec: 18, blocks: [68, 68], align: [6, 34], rem: 7 }
+  1: { total: 26, data: 9, ec: 17, blocks: [9], align: [], rem: 0 },
+  2: { total: 44, data: 16, ec: 28, blocks: [16], align: [6, 18], rem: 7 },
+  3: { total: 70, data: 26, ec: 22, blocks: [13, 13], align: [6, 22], rem: 7 },
+  4: { total: 100, data: 36, ec: 16, blocks: [9, 9, 9, 9], align: [6, 26], rem: 7 },
+  5: { total: 134, data: 46, ec: 22, blocks: [11, 11, 12, 12], align: [6, 30], rem: 7 },
+  6: { total: 172, data: 60, ec: 28, blocks: [15, 15, 15, 15], align: [6, 34], rem: 7 },
+  7: { total: 196, data: 66, ec: 26, blocks: [13, 13, 13, 13, 14], align: [6, 22, 38], rem: 0 },
+  8: { total: 242, data: 86, ec: 26, blocks: [14, 14, 14, 14, 15, 15], align: [6, 24, 42], rem: 0 }
 };
-var QR_FORMAT_L = ['111011111000100','111001011110011','111110110101010','111100010011101','110011000101111','110001100011000','110110001000001','110100101110110'];
+var QR_FORMAT_H = ['001011010001001','001001110111110','001110011100111','001100111010000','000011101100010','000001001010101','000110100001100','000100000111011'];
 var GF_EXP = [], GF_LOG = [];
 (function() {
   var x = 1;
@@ -46,7 +49,7 @@ function makeQR(text) {
   var utf8 = unescape(encodeURIComponent(text));
   for (var i = 0; i < utf8.length; i++) bytes.push(utf8.charCodeAt(i));
   var version = 0, spec = null;
-  for (var v = 1; v <= 6; v++) {
+  for (var v = 1; v <= 8; v++) {
     if (4 + 8 + bytes.length * 8 <= QR_SPEC[v].data * 8) { version = v; spec = QR_SPEC[v]; break; }
   }
   if (!version) return null;
@@ -124,6 +127,17 @@ function buildMatrix(size, version, spec, finalBits, mask) {
   for (var f = 0; f < 9; f++) { reserve(8, f); reserve(f, 8); }
   for (var f2 = 0; f2 < 8; f2++) { reserve(size - 1 - f2, 8); reserve(8, size - 1 - f2); }
   setF(8, size - 8, true); // dark module
+  // version info (sirf version 7+): 18-bit BCH, generator 0x1F25, do copies
+  if (version >= 7) {
+    var vrem = version;
+    for (var vi = 0; vi < 12; vi++) vrem = (vrem << 1) ^ ((vrem >> 11) * 0x1F25);
+    var vbits = (version << 12) | vrem;
+    for (var vj = 0; vj < 18; vj++) {
+      var vb = ((vbits >> vj) & 1) === 1;
+      setF(size - 11 + vj % 3, vj / 3 | 0, vb); // top-right copy
+      setF(vj / 3 | 0, size - 11 + vj % 3, vb); // bottom-left copy
+    }
+  }
   // place data
   var idx = 0;
   for (var right = size - 1; right >= 1; right -= 2) {
@@ -154,7 +168,7 @@ function buildMatrix(size, version, spec, finalBits, mask) {
     if (flip) mod[my][mx] = !mod[my][mx];
   }
   // format info (nayuki-style placement, bit i = LSB i of the 15-bit value)
-  var data = parseInt(QR_FORMAT_L[mask], 2);
+  var data = parseInt(QR_FORMAT_H[mask], 2);
   function bitAt(bb, i) { return ((bb >>> i) & 1) === 1; }
   function setRaw(x, y, v) { mod[y][x] = !!v; func[y][x] = true; }
   for (var i1 = 0; i1 <= 5; i1++) setRaw(8, i1, bitAt(data, i1));

@@ -53,6 +53,12 @@
 .pfoot small { display: block; font-size: 12px; color: #94a3b8; margin-top: 2px; }
 .pfoot .fast { background: #7c3aed; color: #fff; font-size: 12px; font-weight: 800; border-radius: 20px; padding: 7px 13px; letter-spacing: .5px; white-space: nowrap; }
 .poster-credit { font-size: 13px; color: #5b5f8a; text-align: center; }
+/* v3.22: background watermark + logo image */
+.poster { position: relative; }
+.pwatermark { position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%) rotate(-18deg); font-size: 80px; font-weight: 900; letter-spacing: 2px; color: rgba(79,70,229,0.16); white-space: nowrap; z-index: 0; pointer-events: none; }
+.pbody { position: relative; z-index: 1; }
+.plogo-img { height: 48px; width: auto; display: block; }
+.plogo .ppill { white-space: nowrap; max-width: none; }
 #posterUrl, #qrNote { display: none; }
 @media (min-width: 600px) {
   .poster { min-height: 1000px; }
@@ -98,14 +104,11 @@
 </div>
 
 <div class="poster">
+  <div class="pwatermark">Pak QR Print</div>
   <div class="pbar"></div>
   <div class="pbody">
     <div class="plogo">
-      <div class="lft">
-        <div class="tile">PQ</div>
-        <div class="lname">Pak <i>QR Print</i></div>
-      </div>
-      <div class="ppill">PAK QR PRINT</div>
+      <img class="plogo-img" src="Pak-QR-Print-Logo.png" alt="Pak QR Print">
     </div>
     <h2 id="posterShop">Pak QR Print</h2>
     <div class="poster-tag">SCAN &amp; SEND YOUR FILES</div>
@@ -148,6 +151,33 @@
   document.getElementById('posterUrl').textContent = url;
   var done = false;
   try { done = drawQRToCanvas(document.getElementById('qrCanvas'), url); } catch (e) { done = false; }
+  // v3.22: QR ke centre mein chhota 'Pak QR Print' badge (level H - scan safe, decode-verified).
+  if (done) {
+    try {
+      var cvb = document.getElementById('qrCanvas');
+      var cx = cvb.getContext('2d');
+      var W = cvb.width, H = cvb.height;
+      var bw = Math.round(W * 0.22), bh = Math.round(H * 0.19);
+      var bx = (W - bw) / 2, by = (H - bh) / 2, rr = 7;
+      cx.save();
+      cx.beginPath();
+      cx.moveTo(bx + rr, by);
+      cx.arcTo(bx + bw, by, bx + bw, by + bh, rr);
+      cx.arcTo(bx + bw, by + bh, bx, by + bh, rr);
+      cx.arcTo(bx, by + bh, bx, by, rr);
+      cx.arcTo(bx, by, bx + bw, by, rr);
+      cx.closePath();
+      cx.fillStyle = '#ffffff'; cx.fill();
+      cx.lineWidth = 2; cx.strokeStyle = '#4f46e5'; cx.stroke();
+      cx.textAlign = 'center'; cx.textBaseline = 'middle';
+      cx.font = '900 12px Arial, sans-serif';
+      cx.fillStyle = '#1e1b4b';
+      cx.fillText('Pak QR', W / 2, by + bh * 0.32);
+      cx.fillStyle = '#4f46e5';
+      cx.fillText('Print', W / 2, by + bh * 0.70);
+      cx.restore();
+    } catch (e) {}
+  }
   document.getElementById('qrNote').textContent = done ? 'QR is ready — scan it with your phone camera to test.' : 'QR could not be made — the link is too long or the customer URL is not correct.';
   if (!ok) {
     document.getElementById('posterMsg').textContent = 'Note: firebase-config.js is not filled yet — the shop name is showing as default. Fill the config as per the guide and the name will appear.';
