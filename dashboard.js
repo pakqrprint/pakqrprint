@@ -141,6 +141,8 @@ function openA4Modal(o) {
       box.innerHTML = ''; box.appendChild(cv);
       return page.render({ canvasContext: cv.getContext('2d'), viewport: vp }).promise;
     }).catch(function () { box.innerHTML = '<p class="hint">PDF preview did not open — open the file with "View File".</p>'; });
+  } else if (/\.(docx?|xlsx?|pptx?)$/i.test(f.name || '')) {
+    box.innerHTML = '<iframe src="https://view.officeapps.live.com/op/embed.aspx?src=' + encodeURIComponent(f.downloadURL) + '" style="width:100%;height:420px;border:1.5px solid #dfe2f7;border-radius:10px" frameborder="0"></iframe>';
   } else {
     box.innerHTML = '<p class="hint">' + esc(f.name) + ' (' + esc((f.kind || '').toUpperCase()) + ') — there is no browser preview for this file. Open it with "View File" or print it with "Direct Print".</p>';
   }
