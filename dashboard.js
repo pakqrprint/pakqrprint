@@ -125,8 +125,11 @@ function openA4Modal(o) {
   var box = $('a4Content'); box.innerHTML = '<p class="hint">Loading preview...</p>';
   $('a4Modal').style.display = 'block';
   var f = (o.files && o.files[0]) || null;
-  if (!f || !f.downloadURL) { box.innerHTML = '<p class="hint">No preview is available for this order file.</p>'; return; }
+  if (!f || !f.downloadURL) { box.innerHTML = '<p class="hint">No preview is available for this order file.</p>'; $('a4BrowserBtn').style.display = 'none'; return; }
   a4ViewUrl = f.downloadURL;
+  // v3.19: Browser Print sirf PDF aur photo ke liye (Office iframe cross-origin hai - browser se print nahi hota)
+  var canBrowser = (f.kind === 'image' || f.kind === 'idcard' || f.kind === 'pdf' || /\.(jpe?g|png|pdf)$/i.test(f.name || ''));
+  $('a4BrowserBtn').style.display = canBrowser ? '' : 'none';
   if (f.kind === 'image' || f.kind === 'idcard' || /\.(jpe?g|png)$/i.test(f.name || '')) {
     box.innerHTML = '<img src="' + esc(f.downloadURL) + '" alt="preview">';
   } else if (f.kind === 'pdf' || /\.pdf$/i.test(f.name || '')) {
@@ -147,6 +150,48 @@ function openA4Modal(o) {
     box.innerHTML = '<p class="hint">' + esc(f.name) + ' (' + esc((f.kind || '').toUpperCase()) + ') — there is no browser preview for this file. Open it with "View File" or print it with "Direct Print".</p>';
   }
   applyA4Transform();
+}
+// v3.19: Browser Print - PDF (saare pages) aur photo seedha browser se print (agent ki zaroorat nahi).
+// Office files (Word/Excel/PowerPoint) ke liye nahi - un ka viewer iframe cross-origin hai.
+function browserPrint() {
+  var f = (a4Order && a4Order.files && a4Order.files[0]) || null;
+  if (!f || !f.downloadURL) { alert('Browser print is available for PDF and photo files only.'); return; }
+  var isImg = f.kind === 'image' || f.kind === 'idcard' || /\.(jpe?g|png)$/i.test(f.name || '');
+  var isPdf = f.kind === 'pdf' || /\.pdf$/i.test(f.name || '');
+  if (!isImg && !isPdf) { alert('Browser print works for PDF and photo files only. Word, Excel and PowerPoint need the print agent (Direct Print).'); return; }
+  var area = $('printArea');
+  if (!area) { area = document.createElement('div'); area.id = 'printArea'; document.body.appendChild(area); }
+  area.innerHTML = '';
+  var done = false;
+  function goPrint() { if (!done) { done = true; window.print(); } }
+  if (isImg) {
+    var im = document.createElement('img');
+    im.alt = f.name || 'print';
+    im.onload = goPrint;
+    im.onerror = function () { alert('The image could not be loaded for browser print.'); };
+    im.src = f.downloadURL;
+    area.appendChild(im);
+    if (im.complete) goPrint();
+  } else {
+    import('./pdfjs/pdf.mjs').then(function (pdfjsLib) {
+      pdfjsLib.GlobalWorkerOptions.workerSrc = './pdfjs/pdf.worker.mjs';
+      return pdfjsLib.getDocument({ url: f.downloadURL }).promise;
+    }).then(function (pdf) {
+      var chain = Promise.resolve();
+      for (var p = 1; p <= pdf.numPages; p++) {
+        (function (pn) {
+          chain = chain.then(function () { return pdf.getPage(pn); }).then(function (page) {
+            var cv = document.createElement('canvas');
+            var vp = page.getViewport({ scale: 1.5 });
+            cv.width = vp.width; cv.height = vp.height;
+            area.appendChild(cv);
+            return page.render({ canvasContext: cv.getContext('2d'), viewport: vp }).promise;
+          });
+        })(p);
+      }
+      return chain;
+    }).then(goPrint).catch(function () { alert('The PDF could not be prepared for browser print. Use Direct Print (agent) instead.'); });
+  }
 }
 function closeA4Modal() { $('a4Modal').style.display = 'none'; a4Order = null; }
 
@@ -308,6 +353,8 @@ document.addEventListener('DOMContentLoaded', function () {
   $('a4ZoomOut').addEventListener('click', function () { a4Zoom = Math.max(0.5, a4Zoom - 0.2); applyA4Transform(); });
   $('a4Rotate').addEventListener('click', function () { a4Rot = (a4Rot + 90) % 360; applyA4Transform(); });
   $('a4ViewBtn').addEventListener('click', function () { if (a4ViewUrl) window.open(a4ViewUrl, '_blank'); });
+  $('a4BrowserBtn').addEventListener('click', browserPrint);
+  window.addEventListener('afterprint', function () { var a = $('printArea'); if (a) a.innerHTML = ''; });
   $('a4Modal').addEventListener('click', function (e) { if (e.target === $('a4Modal')) closeA4Modal(); });
 });
 })();

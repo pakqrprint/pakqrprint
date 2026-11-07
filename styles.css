@@ -238,7 +238,14 @@ label.idphoto { display: flex; flex-direction: column; align-items: center; just
   header.topbar .tbtn { padding: 7px 9px; font-size: 12px; }
   header.topbar .tbtn svg { width: 14px; height: 14px; }
 }
+#printArea { display: none; }
 @media print {
   body { background: #fff; }
   .hero, .topbar, .btn, .a4tools, .no-print, .qrmodal { display: none !important; }
+  /* v3.19: Browser Print - sirf #printArea (PDF pages / photo) print ho, baaki sab chhupa ho */
+  body * { visibility: hidden; }
+  #printArea, #printArea * { visibility: visible; }
+  #printArea { display: block !important; position: absolute; left: 0; top: 0; width: 100%; }
+  #printArea canvas, #printArea img { display: block; max-width: 100%; height: auto; margin: 0 auto; page-break-after: always; }
+  #printArea canvas:last-child, #printArea img:last-child { page-break-after: auto; }
 }
