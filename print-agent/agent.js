@@ -96,7 +96,7 @@ async function signIn() {
   const j = await httpsJson('POST', url, { email: CFG.email, password: CFG.password, returnSecureToken: true });
   idToken = j.idToken; refreshToken = j.refreshToken;
   tokenExp = Date.now() + (parseInt(j.expiresIn, 10) - 60) * 1000;
-  log('Firebase login ho gaya (shopkeeper: ' + CFG.email + ')');
+  log('Firebase login ho gaya (admin: ' + CFG.email + ')');
 }
 async function refreshIdToken() {
   const j = await httpsJson('POST', 'https://securetoken.googleapis.com/v1/token?key=' + encodeURIComponent(CFG.apiKey), { grant_type: 'refresh_token', refresh_token: refreshToken });
