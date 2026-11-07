@@ -224,6 +224,9 @@ label.idphoto { display: flex; flex-direction: column; align-items: center; just
   .stats { grid-template-columns: repeat(2, 1fr); gap: 8px; }
   .stat { padding: 10px 8px; gap: 8px; border-radius: 14px; }
   .sic { width: 36px; height: 36px; border-radius: 11px; font-size: 18px; }
+  /* v3.17: file info line aik line mein (mobile) - chhota font, tang input */
+  .fileitem .finfo { font-size: 12px; }
+  .fileitem .finfo input[type=number] { padding: 6px 6px; font-size: 12px; }
   .stat b { font-size: 21px; }
   .stat i { font-size: 10px; letter-spacing: .3px; }
   .qrbtns { flex-direction: column; }

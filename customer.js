@@ -121,9 +121,9 @@ function renderFiles() {
   var box = $('fileList'); box.innerHTML = '';
   selFiles.forEach(function (it, idx) {
     var d = document.createElement('div'); d.className = 'fileitem';
-    var h = '<div class="fname">' + esc(it.file.name) + '<button type="button" class="x2" data-x="' + idx + '" title="Remove">✕</button></div><div>' + esc(it.kind.toUpperCase()) + ' • ' + (it.file.size / 1024).toFixed(1) + ' KB • Pages: ';
-    h += '<input type="number" min="1" value="' + it.pages + '" data-pg="' + idx + '" style="width:64px"> ';
-    h += it.pagesAuto ? '(auto-counted)' : '(you entered)';
+    var h = '<div class="fname">' + esc(it.file.name) + '<button type="button" class="x2" data-x="' + idx + '" title="Remove">✕</button></div><div class="finfo">' + esc(it.kind.toUpperCase()) + ' • ' + (it.file.size / 1024).toFixed(1) + ' KB • Pages: ';
+    h += '<input type="number" min="1" value="' + it.pages + '" data-pg="' + idx + '" style="width:54px"> ';
+    h += it.pagesAuto ? '(auto-counted)' : '(entered)';
     h += '</div>';
     if (rangeEligible(it)) {
       h += '<div class="frow"><label>Pages:</label><select data-rm="' + idx + '">'
