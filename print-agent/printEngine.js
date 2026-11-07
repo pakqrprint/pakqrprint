@@ -324,6 +324,16 @@ function buildPptComScript(filePath, opts) {
   const copies = Math.max(1, Math.min(10, parseInt(opts.copies || '1', 10) || 1));
   const spp = parseInt(opts.slidesPerPage, 10) || 1;
   const outType = PPT_OUTPUT_TYPE[spp] || 1;
+  // Phase 3.22: PPT range - opts.range "2-5" ya "1-1" ho to PrintOut(From, To);
+  // range na ho to pehle jaisa PrintOut() (poori file). PowerPoint VBA:
+  // Presentation.PrintOut(From, To, PrintToFile, Copies, Collate).
+  var pptFrom = 0, pptTo = 0;
+  (function () {
+    var r = String((opts && opts.range) || '').trim();
+    var m = /^(\d+)\s*-\s*(\d+)$/.exec(r);
+    if (m) { var a = parseInt(m[1], 10), b = parseInt(m[2], 10); if (a >= 1 && b >= a) { pptFrom = a; pptTo = b; } }
+    else if (/^\d+$/.test(r)) { var q = parseInt(r, 10); if (q >= 1) { pptFrom = q; pptTo = q; } }
+  })();
   const lines = [];
   lines.push("$ErrorActionPreference = 'Stop'");
   lines.push('$fail = $null');
@@ -344,7 +354,8 @@ function buildPptComScript(filePath, opts) {
   lines.push('  [Console]::Out.WriteLine("PQ_STEP:OPEN")');
   lines.push('  Start-Sleep -Milliseconds 1500');
   lines.push('  $pres.PrintOptions.OutputType = ' + outType);
-  lines.push('  for ($i = 0; $i -lt ' + copies + '; $i++) { $pres.PrintOut() }');
+  var pptPrintCall = (pptFrom > 0 && pptTo >= pptFrom) ? '$pres.PrintOut(' + pptFrom + ', ' + pptTo + ')' : '$pres.PrintOut()';
+  lines.push('  for ($i = 0; $i -lt ' + copies + '; $i++) { ' + pptPrintCall + ' }');
   lines.push('  [Console]::Out.WriteLine("PQ_STEP:PRINT")');
   // Phase 3.17: spool-wait - PrintOut ke baad foran Close/Quit job ko
   // spool hone se pehle cancel kar deta tha (background print race).
@@ -455,7 +466,8 @@ async function printViaPowerPointCOM(filePath, opts) {
   const psExe = process.env.PQ_PPT_PS || 'powershell.exe';
   const ps32Exe = process.env.PQ_PPT_PS32 || PPT_PS32;
   const spp = parseInt((opts || {}).slidesPerPage, 10) || 1;
-  const okMethod = 'PowerPoint Direct Print (' + spp + ' slides per page)';
+  const rangeTxt = String((opts || {}).range || '').trim();
+  const okMethod = 'PowerPoint Direct Print (' + spp + ' slides per page' + (rangeTxt ? ', slides ' + rangeTxt : '') + ')';
   const logFn = (opts && typeof opts.printLogFn === 'function') ? opts.printLogFn : null;
   let a = await runPptComAttempt(psExe, filePath, opts);
   if (!a.noppt) {
@@ -1070,7 +1082,10 @@ async function printOneFile(filePath, opts) {
   }
   const isOffice = /\.(docx?|xlsx?|pptx?)$/i.test(filePath);
   if (isOffice) {
-    if (effRange) return { ok: false, method: '', error: rangePrintError(effRange) };
+    const isPpt = /\.pptx?$/i.test(filePath);
+    // Phase 3.22: PPT ki range COM se lagti hai (PrintOut From/To),
+    // is liye PPT ko range-decline se chhoot hai; Word/Excel pehle jaisa.
+    if (effRange && !isPpt) return { ok: false, method: '', error: rangePrintError(effRange) };
     const isWord = /\.docx?$/i.test(filePath);
     if (isWord) {
       // Phase 2.5.1: Word files pehle Word program ke zariye direct
@@ -1086,19 +1101,27 @@ async function printOneFile(filePath, opts) {
       if (rs.ok) return rs;
       return { ok: false, method: rc.method, error: rc.error + ' | ' + rs.error + ' | Lagta hai is PC par MS Office ya LibreOffice nahi hai, ya us ne print ka option nahi diya - file Download/Open karke khud print karein. | MS Word ya LibreOffice Writer chahiye' };
     }
-    const isPpt = /\.pptx?$/i.test(filePath);
     if (isPpt) {
       // Phase 3.5: slides-per-page 1 se ziada ho to PowerPoint COM
       // wala rasta (Handouts). PowerPoint na mile to file auto
       // print NAHI hoti - khamoshi se 1-slide-per-page nahi
       // nikalta. Option 1 ho to pehle wala Shell rasta hi hai.
+      // Phase 3.22: range ho to bhi COM hi (Shell range nahi lagata).
       const spp = parseInt(opts.slidesPerPage, 10) || 1;
-      if (spp > 1) {
+      if (spp > 1 || effRange) {
         const rp = await printViaPowerPointCOM(filePath, opts);
         if (rp.ok) return rp;
         if (rp.noPowerPoint) {
           const asal = String(rp.comError || rp.error || '').slice(0, 200);
-          return { ok: false, method: '', error: 'Slides wala option (' + spp + ' slides ek page par) sirf MS PowerPoint se print ho sakta hai - is PC par PowerPoint COM nahi bana, is liye ye file auto print NAHI hui. | ' + spp + ' slides per page ke liye PC par MS PowerPoint hona zaroori hai' + (asal ? ' | Asal wajah: ' + asal : '') + ' | File ko orders folder se khol kar PowerPoint ke Handouts (' + spp + ' slides per page) se khud print karein.' };
+          var whyTxt, tailTxt;
+          if (effRange) {
+            whyTxt = 'Slides ki range (' + effRange + ') sirf MS PowerPoint se print ho sakti hai - is PC par PowerPoint COM nahi bana, is liye ye file auto print NAHI hui. | Range wali PowerPoint file ke liye PC par MS PowerPoint hona zaroori hai';
+            tailTxt = ' | File ko orders folder se khol kar PowerPoint mein range (' + effRange + ') se khud print karein.';
+          } else {
+            whyTxt = 'Slides wala option (' + spp + ' slides ek page par) sirf MS PowerPoint se print ho sakta hai - is PC par PowerPoint COM nahi bana, is liye ye file auto print NAHI hui. | ' + spp + ' slides per page ke liye PC par MS PowerPoint hona zaroori hai';
+            tailTxt = ' | File ko orders folder se khol kar PowerPoint ke Handouts (' + spp + ' slides per page) se khud print karein.';
+          }
+          return { ok: false, method: '', error: whyTxt + (asal ? ' | Asal wajah: ' + asal : '') + tailTxt };
         }
         return { ok: rp.ok, method: rp.method, error: rp.error, detail: rp.fullError || '' };
       }
