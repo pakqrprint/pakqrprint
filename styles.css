@@ -200,6 +200,12 @@ label.idphoto { display: flex; flex-direction: column; align-items: center; just
 .a4tools { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
 .a4tools button { padding: 9px 12px; border-radius: 8px; border: 1.5px solid #4f46e5; background: #fff; color: #312e81; font-weight: 700; cursor: pointer; font-family: inherit; }
 .a4tools button.primary { background: #4f46e5; color: #fff; }
+.a4head { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.a4headbtns { display: flex; gap: 8px; align-items: center; flex: 0 0 auto; }
+#a4Title { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 18px; }
+#a4PrintBtn { display: inline-flex; align-items: center; gap: 6px; padding: 9px 12px; border-radius: 8px; border: none; background: #4f46e5; color: #fff; font-weight: 700; cursor: pointer; font-family: inherit; font-size: 14px; }
+#a4PrintBtn svg { width: 15px; height: 15px; }
+#a4CloseBtn { border: none; background: #f1f5f9; width: 36px; height: 36px; border-radius: 10px; font-size: 16px; cursor: pointer; color: #475569; flex: 0 0 auto; }
 
 /* ---------- mobile ---------- */
 @media (max-width: 760px) {

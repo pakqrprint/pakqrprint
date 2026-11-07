@@ -135,17 +135,15 @@ function renderFiles() {
     }
     h += '<div class="frow"><label>Copies:</label><input type="number" min="1" max="99" value="' + (it.copies || 1) + '" data-cp="' + idx + '" style="width:64px">'
       + '<label>Per sheet:</label><select data-nup="' + idx + '">'
-      + [1, 2, 4, 6].map(function (n) { return '<option value="' + n + '"' + (it.nup === n ? ' selected' : '') + '>' + n + '</option>'; }).join('')
+      + (it.kind === 'powerpoint' ? [1, 2, 4, 6, 9] : [1, 2, 4, 6]).map(function (n) { return '<option value="' + n + '"' + (it.nup === n ? ' selected' : '') + '>' + n + '</option>'; }).join('')
       + '</select>'
-      + (it.kind === 'powerpoint' ? '<label>Slides/page:</label><select data-spp="' + idx + '">' + [1, 2, 4, 6, 9].map(function (n) { return '<option value="' + n + '"' + (it.spp === n ? ' selected' : '') + '>' + n + '</option>'; }).join('') + '</select>' : '')
       + '<button type="button" class="eye" data-pv="' + idx + '" title="Preview">' + EYE_SVG + '</button></div>';
     d.innerHTML = h;
     box.appendChild(d);
   });
   box.querySelectorAll('[data-pg]').forEach(function (el) { el.addEventListener('change', function () { var it = selFiles[+el.getAttribute('data-pg')]; var v = parseInt(el.value, 10); if (v > 0) { it.pages = v; it.pagesAuto = false; } renderFiles(); }); });
   box.querySelectorAll('[data-cp]').forEach(function (el) { el.addEventListener('change', function () { var it = selFiles[+el.getAttribute('data-cp')]; var v = parseInt(el.value, 10); if (v > 0) it.copies = v; }); });
-  box.querySelectorAll('[data-nup]').forEach(function (el) { el.addEventListener('change', function () { selFiles[+el.getAttribute('data-nup')].nup = parseInt(el.value, 10) || 1; }); });
-  box.querySelectorAll('[data-spp]').forEach(function (el) { el.addEventListener('change', function () { selFiles[+el.getAttribute('data-spp')].spp = parseInt(el.value, 10) || 1; }); });
+  box.querySelectorAll('[data-nup]').forEach(function (el) { el.addEventListener('change', function () { var it = selFiles[+el.getAttribute('data-nup')]; it.nup = parseInt(el.value, 10) || 1; if (it.kind === 'powerpoint') it.spp = it.nup; }); });
   box.querySelectorAll('[data-rm]').forEach(function (el) { el.addEventListener('change', function () { var it = selFiles[+el.getAttribute('data-rm')]; it.rangeMode = el.value; it.range = ''; it.rangePages = 0; renderFiles(); }); });
   box.querySelectorAll('[data-rg]').forEach(function (el) { el.addEventListener('change', function () { var it = selFiles[+el.getAttribute('data-rg')]; var r = parseRange(el.value, it.pages); if (r) { it.range = el.value; it.rangePages = r.count; } else { it.range = ''; it.rangePages = 0; el.value = ''; alert('Range is not correct - for example write 2-5, total pages are ' + it.pages + '.'); } }); });
   box.querySelectorAll('[data-x]').forEach(function (el) { el.addEventListener('click', function () { selFiles.splice(+el.getAttribute('data-x'), 1); renderFiles(); }); });
