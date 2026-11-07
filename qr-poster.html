@@ -8,7 +8,7 @@
 <style>
 /* Pak QR Print — QR poster v3: reference-poster layout + gold border + full A4.
    Poster-only rules live here so index.html / dashboard.html are untouched. */
-@page { size: A4; margin: 10mm; }
+@page { size: A4 portrait; margin: 10mm; } /* v3.18: portrait force - phone print landscape ho jata tha, poster chhota aata tha */
 .poster {
   width: min(794px, 96vw);
   max-width: none;
@@ -67,10 +67,11 @@
 @media print {
   html, body { margin: 0; padding: 0; background: #fff; }
   .poster {
-    width: auto;
+    width: 190mm;
     height: 277mm;
     min-height: 0;
-    margin: 0;
+    margin: 0 auto;
+    box-sizing: border-box; /* v3.18: 190mm mein border shamil - overflow na ho */
     /* Gold border MUST print — never border:none here (a past bug removed the border in print). */
     border: 7px solid #C9A227;
     outline: 2px solid #D4AF37;
