@@ -21,7 +21,7 @@
 const fs = require('fs');
 const path = require('path');
 const https = require('https');
-const { printOneFile, tryDocNupForFile, SUMATRA_FILE } = require('./printEngine.js');
+const { printOneFile, tryDocNupForFile, SUMATRA_FILE, groupImageSheets, printViaImageSheet } = require('./printEngine.js'); // v3.16: photo sheet
 
 const ROOT = __dirname;
 const CONFIG_FILE = path.join(ROOT, 'config.json');
@@ -123,19 +123,56 @@ async function storageDelete(storagePath) { return; }
 
 // ---------- Print ----------
 function safeName(n) { return String(n || 'file').replace(/[\\/:*?"<>|]/g, '_'); }
+// Phase 3.16: photo sheet fail ho ya member download na ho to har photo
+// alag print karein (poore page par aik) - order kabhi fail nahi.
+async function printPhotosOneByOne(grpFiles, orderKey, baseOpts, printLog) {
+  let okAll = true;
+  for (const gf of grpFiles) {
+    const gd = path.join(DOWNLOAD_DIR, orderKey + '_' + safeName(gf.name));
+    try {
+      if (!gf.downloadURL) throw new Error('File ka download link nahi mila');
+      await httpsDownload(gf.downloadURL, gd);
+      const gopts = Object.assign({}, baseOpts, { copies: gf.copies || 1 });
+      const gr = await printOneFile(gd, gopts);
+      printLog.push({ file: gf.name, ok: !!gr.ok, method: gr.method || '', error: gr.ok ? '' : (gr.error || 'Print fail'), at: Date.now() });
+      log('  ' + gf.name + ': ' + (gr.ok ? 'OK (' + (gr.method || '') + ')' : 'FAIL - ' + (gr.error || '')));
+      if (!gr.ok) okAll = false;
+    } catch (e) {
+      okAll = false;
+      printLog.push({ file: gf.name, ok: false, method: '', error: String((e && e.message) || e), at: Date.now() });
+      log('  ' + gf.name + ': FAIL - ' + String((e && e.message) || e));
+    }
+  }
+  return okAll;
+}
+
 async function printOrder(orderKey, order, settings) {
   log('Order ' + (order.orderNo || orderKey) + ' print ho raha hai (' + (order.files || []).length + ' file)...');
   await dbPatch('/shops/' + CFG.shopId + '/orders/' + orderKey, { status: 'Printing' });
   const printLog = [];
   let allOk = true;
+  // Phase 3.16: photo sheet - order ki photos (pehli photo ki "Per sheet"
+  // value se) sheet par lagti hain (4/6 aik page par). ID Card order
+  // (source idcard / kind idcard) mein grouping NAHI - composite akela
+  // hi print hota hai. groupImageSheets engine mein pehle se tha (3.19)
+  // lekin kabhi call hi nahi hota tha. NOTE: saari photos ki Per sheet
+  // aik jaisi rakhein - pehli photo wali lagegi.
+  const orderFiles = order.files || [];
+  const firstPhoto = orderFiles.find((x) => /\.(jpe?g|png|bmp|gif)$/i.test(x.name || '') && x.kind !== 'idcard');
+  const isCnicOrder = (order.source === 'idcard') || orderFiles.some((x) => x.kind === 'idcard');
+  const photoPpp = firstPhoto ? (parseInt(firstPhoto.nup, 10) || 1) : 1;
+  const photoGroups = groupImageSheets(orderFiles.map((x) => x.name), photoPpp, isCnicOrder);
   for (const f of (order.files || [])) {
     const dest = path.join(DOWNLOAD_DIR, orderKey + '_' + safeName(f.name));
+    // Phase 3.16: sheet member (head nahi) - pehle hi sheet ke saath print ho chuki, skip.
+    if (photoGroups.sheetMember[f.name] && !photoGroups.sheetHead[f.name]) continue;
     try {
       if (!f.downloadURL) throw new Error('File ka download link nahi mila');
       await httpsDownload(f.downloadURL, dest);
       const opts = {
         copies: f.copies || 1,
         colorMode: f.colorMode || order.colorMode || 'BW',
+        printType: ((f.colorMode || order.colorMode || 'BW') === 'Color' ? 'Colour' : 'BW'), // v3.16: engine -Mono/color isi se chalta hai (pehle kabhi set hi nahi hota tha - rang wali photo bhi BW print hoti thi; BW wale orders pehle jaisi hi rahenge)
         duplex: false,
         paperSize: (f.paperSize || order.paperSize || 'A4'),
         range: (f.rangeMode === 'some' ? (f.range || '') : (f.rangeMode === 'first' ? '1-1' : '')),
@@ -146,6 +183,48 @@ async function printOrder(orderKey, order, settings) {
         orderPrinter: '',
         printerMismatch: false
       };
+      // Phase 3.16: photo sheet - pehli photo par poori sheet print hoti hai.
+      if (photoGroups.sheetHead[f.name]) {
+        const grpNames = photoGroups.sheetHead[f.name];
+        const grpFiles = grpNames.map((n) => (order.files || []).find((x) => x.name === n)).filter(Boolean);
+        if (grpFiles.length <= 1) {
+          // aik photo - sheet nahi, poore page par aik photo.
+          const r0 = await printOneFile(dest, opts);
+          printLog.push({ file: f.name, ok: !!r0.ok, method: r0.method || '', error: r0.ok ? '' : (r0.error || 'Print fail'), at: Date.now() });
+          log('  ' + f.name + ': ' + (r0.ok ? 'OK (' + (r0.method || '') + ')' : 'FAIL - ' + (r0.error || '')));
+          if (!r0.ok) allOk = false;
+          continue;
+        }
+        // baqi members download karein (pehli pehle se downloaded hai).
+        const dests = [dest];
+        let dlFail = null;
+        for (let gi = 1; gi < grpFiles.length; gi++) {
+          const gf = grpFiles[gi];
+          const gd = path.join(DOWNLOAD_DIR, orderKey + '_' + safeName(gf.name));
+          try {
+            if (!gf.downloadURL) throw new Error('File ka download link nahi mila');
+            await httpsDownload(gf.downloadURL, gd);
+            dests.push(gd);
+          } catch (e) { dlFail = e; break; }
+        }
+        if (dlFail) {
+          log('  Photo sheet (' + grpNames.join(', ') + ') - member download fail, alag alag print: ' + String((dlFail && dlFail.message) || dlFail));
+          if (!await printPhotosOneByOne(grpFiles, orderKey, opts, printLog)) allOk = false;
+          continue;
+        }
+        const sheetOpts = Object.assign({}, opts, { picturesPerPage: photoPpp, copies: f.copies || 1 });
+        const sr = await printViaImageSheet(dests, sheetOpts);
+        if (!sr.ok) {
+          log('  Photo sheet fail (' + grpNames.join(', ') + ') - alag alag print: ' + (sr.error || ''));
+          if (!await printPhotosOneByOne(grpFiles, orderKey, opts, printLog)) allOk = false;
+          continue;
+        }
+        for (const gf of grpFiles) {
+          printLog.push({ file: gf.name, ok: true, method: sr.method || '', error: '', at: Date.now() });
+          log('  ' + gf.name + ': OK (' + (sr.method || '') + ')');
+        }
+        continue;
+      }
       let r;
       if ((opts.nup || 1) > 1 && /(\.pdf|\.docx?|\.xlsx?)$/i.test(f.name)) {
         r = await tryDocNupForFile(dest, f.name, opts);
@@ -160,6 +239,14 @@ async function printOrder(orderKey, order, settings) {
       allOk = false;
       printLog.push({ file: f.name, ok: false, method: '', error: String((e && e.message) || e), at: Date.now() });
       log('  ' + f.name + ': FAIL - ' + String((e && e.message) || e));
+      // Phase 3.16: head fail ho to us ki sheet ke members bhi fail (warna wo bina log ke skip ho jayenge).
+      if (photoGroups.sheetHead[f.name]) {
+        for (const mn of photoGroups.sheetHead[f.name]) {
+          if (mn === f.name) continue;
+          printLog.push({ file: mn, ok: false, method: '', error: 'Sheet head fail: ' + String((e && e.message) || e), at: Date.now() });
+          log('  ' + mn + ': FAIL - sheet head fail');
+        }
+      }
     }
   }
   const status = allOk ? 'Printed' : 'PrintFailed';

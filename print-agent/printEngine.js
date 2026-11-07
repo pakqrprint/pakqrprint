@@ -1240,4 +1240,4 @@ async function printOneFile(filePath, opts) {
 //         printerMismatch }
 // addPrintLog yahan sirf console par likhta hai (agent khud Firebase
 // par status likhta hai).
-module.exports = { printOneFile, tryDocNupForFile, printTestPageImage, SUMATRA_FILE };
+module.exports = { printOneFile, tryDocNupForFile, printTestPageImage, SUMATRA_FILE, groupImageSheets, printViaImageSheet }; // v3.16: photo sheet ke liye group + sheet printer export
