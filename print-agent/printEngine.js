@@ -268,10 +268,23 @@ function buildWordComScript(filePath, opts) {
   if (opts.margins === 'narrow') {
     lines.push('  try { $d.PageSetup.TopMargin = 36; $d.PageSetup.BottomMargin = 36; $d.PageSetup.LeftMargin = 36; $d.PageSetup.RightMargin = 36 } catch {}');
   }
+  // Phase 3.14: Word range - opts.range "2-5" ya "1-1" ho to PrintOut
+  // (Background, Append, Range=3 [wdPrintFromTo], OutputFileName, From, To);
+  // range na ho to pehle jaisa. Single page = "1-1" ya "3".
+  var wordFrom = 0, wordTo = 0;
+  (function () {
+    var r = String((opts && opts.range) || '').trim();
+    var m = /^(\d+)\s*-\s*(\d+)$/.exec(r);
+    if (m) { var a = parseInt(m[1], 10), b = parseInt(m[2], 10); if (a >= 1 && b >= a) { wordFrom = a; wordTo = b; } }
+    else if (/^\d+$/.test(r)) { var q = parseInt(r, 10); if (q >= 1) { wordFrom = q; wordTo = q; } }
+  })();
   // Collate: pehle wala loop (poori copy ek dafa) khud collated
   // hai. Collate OFF ho to har page ki copies ikatthi (page x
   // copies); page ginti na mile to pehle wala loop fallback.
-  if (opts.collate === 'off') {
+  // Range ho to range-print hi (aik block, per-copy loop khud collated).
+  if (wordFrom > 0 && wordTo >= wordFrom) {
+    lines.push('  for ($i = 0; $i -lt ' + copies + '; $i++) { $d.PrintOut($false, $false, 3, \'\', ' + wordFrom + ', ' + wordTo + ') }');
+  } else if (opts.collate === 'off') {
     lines.push('  $collateDone = $false');
     lines.push('  try {');
     lines.push('    $pgCount = $d.ComputeStatistics(2)');
@@ -300,10 +313,76 @@ function buildWordComScript(filePath, opts) {
 }
 async function printViaWordCOM(filePath, opts) {
   const cmd = buildWordComScript(filePath, opts || {});
+  const rangeTxt = String((opts || {}).range || '').trim();
+  const okMethod = 'Word Direct Print' + (rangeTxt ? ' (pages ' + rangeTxt + ')' : '');
   const r = await execFileP('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', cmd], 180000);
   if (!r.ok) return { ok: false, method: 'Word Direct Print', error: 'Word print fail: ' + r.error };
-  return { ok: true, method: 'Word Direct Print', error: '' };
+  return { ok: true, method: okMethod, error: '' };
 }
+// ---- Excel direct print (Phase 3.14) ----
+// Excel ki range sirf Excel COM se lagti hai (Workbook.PrintOut
+// From/To); Shell Print verb range nahi lagata. Ye function sirf
+// tab call hota hai jab range ho (bina range ke pehle wala Shell
+// rasta hi hai). Excel VBA: Workbook.PrintOut(From, To, Copies,
+// Preview, ActivePrinter, PrintToFile, Collate, PrToFileName).
+// COM na bane to PQ_NOXL marker (PPT wale noPowerPoint jaisa).
+function buildExcelComScript(filePath, opts) {
+  const copies = Math.max(1, Math.min(10, parseInt(opts.copies || '1', 10) || 1));
+  var xlFrom = 0, xlTo = 0;
+  (function () {
+    var r = String((opts && opts.range) || '').trim();
+    var m = /^(\d+)\s*-\s*(\d+)$/.exec(r);
+    if (m) { var a = parseInt(m[1], 10), b = parseInt(m[2], 10); if (a >= 1 && b >= a) { xlFrom = a; xlTo = b; } }
+    else if (/^\d+$/.test(r)) { var q = parseInt(r, 10); if (q >= 1) { xlFrom = q; xlTo = q; } }
+  })();
+  const lines = [];
+  lines.push("$ErrorActionPreference = 'Stop'");
+  lines.push('$fail = $null');
+  lines.push('$noxl = $false');
+  lines.push('$comErr = $null');
+  lines.push('$x = $null');
+  lines.push('$wb = $null');
+  lines.push('$origPrinter = $null');
+  lines.push('try {');
+  lines.push('  try { $x = New-Object -ComObject Excel.Application } catch { $comErr = $_.Exception.Message; $noxl = $true; throw }');
+  lines.push('  $x.Visible = $false');
+  lines.push('  try { $x.DisplayAlerts = $false } catch {}');
+  lines.push('  [Console]::Out.WriteLine("PQ_STEP:COM")');
+  if (opts.printerName) {
+    lines.push('  try { $origPrinter = $x.ActivePrinter } catch {}');
+    lines.push('  try { $x.ActivePrinter = ' + psQuote(opts.printerName) + ' } catch {}');
+  }
+  lines.push('  $wb = $x.Workbooks.Open(' + psQuote(filePath) + ', $false, $true)');
+  lines.push('  [Console]::Out.WriteLine("PQ_STEP:OPEN")');
+  var xlPrintCall = (xlFrom > 0 && xlTo >= xlFrom) ? '$wb.PrintOut(' + xlFrom + ', ' + xlTo + ', 1)' : '$wb.PrintOut()';
+  lines.push('  for ($i = 0; $i -lt ' + copies + '; $i++) { ' + xlPrintCall + ' }');
+  lines.push('  [Console]::Out.WriteLine("PQ_STEP:PRINT")');
+  lines.push('} catch {');
+  lines.push('  $fail = $_.Exception.Message');
+  lines.push('  [Console]::Error.WriteLine($fail)');
+  lines.push('} finally {');
+  if (opts.printerName) lines.push('  if ($x -and $origPrinter) { try { $x.ActivePrinter = $origPrinter } catch {} }');
+  lines.push('  if ($wb) { try { $wb.Close($false) } catch {} }');
+  lines.push('  if ($x) { try { $x.Quit() } catch {} }');
+  lines.push('  if ($wb) { try { [void][System.Runtime.InteropServices.Marshal]::ReleaseComObject($wb) } catch {} }');
+  lines.push('  if ($x) { try { [void][System.Runtime.InteropServices.Marshal]::ReleaseComObject($x) } catch {} }');
+  lines.push('}');
+  lines.push('if ($noxl) { [Console]::Out.WriteLine("PQ_NOXL:" + $comErr) }');
+  lines.push('if ($fail) { exit 1 }');
+  lines.push('exit 0');
+  return lines.join('\n');
+}
+async function printViaExcelCOM(filePath, opts) {
+  const cmd = buildExcelComScript(filePath, opts || {});
+  const rangeTxt = String((opts || {}).range || '').trim();
+  const okMethod = 'Excel Direct Print' + (rangeTxt ? ' (pages ' + rangeTxt + ')' : '');
+  const r = await execFileOut('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', cmd], 180000);
+  if (r.ok) return { ok: true, method: okMethod, error: '' };
+  const m = /PQ_NOXL:(.*)/.exec(String(r.stdout || ''));
+  if (m) return { ok: false, noExcel: true, comError: (m[1] || '').trim(), method: 'Excel Direct Print', error: 'Excel COM nahi bana' + (m[1] ? ': ' + m[1].trim() : '') };
+  return { ok: false, method: 'Excel Direct Print', error: 'Excel print fail: ' + r.error };
+}
+
 // ---- PowerPoint direct print (Phase 3.5) ----
 // Word wale raste ki nakal: PowerPoint.Application COM se file
 // read-only khulti hai aur PrintOptions.OutputType se "ek page
@@ -1052,9 +1131,9 @@ async function printOneFile(filePath, opts) {
   const range = (opts && opts.range) ? String(opts.range).trim() : '';
   // Phase 3.14: poori range (1-kul) koi range hi nahi hai — poori
   // file print hoti hai (QP-1001: range 1-6, kul 6 pages, phir bhi
-  // decline ho gaya tha). Partial range par purana decline waisa
-  // hi hai (Office ki partial range auto nahi lag sakti). Kul
-  // maloom na ho (0) to safe side: decline waisa hi.
+  // decline ho gaya tha). v3.14: partial range ka purana decline
+  // KHATAM - Word/PPT/Excel ki range COM PrintOut (From, To) se
+  // lagti hai (PDF ki SumatraPDF se, pehle jaisi).
   const totalPages = parseInt(opts && opts.totalPages, 10) || 0;
   const effRange = collapseFullRange(range, totalPages);
   const mismatch = !!(opts && opts.printerMismatch);
@@ -1083,9 +1162,8 @@ async function printOneFile(filePath, opts) {
   const isOffice = /\.(docx?|xlsx?|pptx?)$/i.test(filePath);
   if (isOffice) {
     const isPpt = /\.pptx?$/i.test(filePath);
-    // Phase 3.22: PPT ki range COM se lagti hai (PrintOut From/To),
-    // is liye PPT ko range-decline se chhoot hai; Word/Excel pehle jaisa.
-    if (effRange && !isPpt) return { ok: false, method: '', error: rangePrintError(effRange) };
+    // Phase 3.14: Word/PPT/Excel ki range COM se lagti hai (PrintOut
+    // From/To) - koi range-decline nahi; har kind apne COM raste se.
     const isWord = /\.docx?$/i.test(filePath);
     if (isWord) {
       // Phase 2.5.1: Word files pehle Word program ke zariye direct
@@ -1096,6 +1174,8 @@ async function printOneFile(filePath, opts) {
       // print nikal jayega).
       const rc = await printViaWordCOM(filePath, opts);
       if (rc.ok) return rc;
+      // Range ho to Shell par NAHI girte (Shell saare pages nikal dega).
+      if (effRange) return { ok: false, method: rc.method, error: rc.error + ' | Pages ki range (' + effRange + ') wali Word file Shell se print nahi ho sakti - file khol kar Word mein range (' + effRange + ') se khud print karein.' };
       if (mismatch) return { ok: false, method: rc.method, error: rc.error + ' | ' + printerMismatchError(opts) };
       const rs = await printViaShell(filePath, opts);
       if (rs.ok) return rs;
@@ -1129,6 +1209,19 @@ async function printOneFile(filePath, opts) {
       const rp2 = await printViaShell(filePath, opts);
       if (rp2.ok) return rp2;
       return { ok: false, method: rp2.method, error: rp2.error + ' | Lagta hai is PC par MS Office ya LibreOffice nahi hai, ya us ne print ka option nahi diya - file Download/Open karke khud print karein.' + (String(rp2.error).indexOf('No application is associated') !== -1 ? ' | Is file ke liye PC par MS PowerPoint ya LibreOffice Impress hona chahiye' : '') };
+    }
+    // Excel: range ho to Excel COM (Workbook.PrintOut From/To) -
+    // Shell range nahi lagata. COM printer ko naam se target kar
+    // sakta hai, is liye range wale raste par mismatch rok nahi hai.
+    // Phase 3.14.
+    if (effRange) {
+      const rx = await printViaExcelCOM(filePath, opts);
+      if (rx.ok) return rx;
+      if (rx.noExcel) {
+        const asal = String(rx.comError || rx.error || '').slice(0, 200);
+        return { ok: false, method: '', error: 'Pages ki range (' + effRange + ') sirf MS Excel se print ho sakti hai - is PC par Excel COM nahi bana, is liye ye file auto print NAHI hui. | Range wali Excel file ke liye PC par MS Excel hona zaroori hai' + (asal ? ' | Asal wajah: ' + asal : '') + ' | File ko orders folder se khol kar Excel mein range (' + effRange + ') se khud print karein.' };
+      }
+      return { ok: false, method: rx.method, error: rx.error };
     }
     // Excel: Shell Print verb MS Office / LibreOffice deta hai -
     // naam se printer target nahi hota.
