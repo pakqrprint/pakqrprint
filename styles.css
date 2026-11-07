@@ -89,6 +89,7 @@ label.idphoto { display: flex; flex-direction: column; align-items: center; just
 .prevbody img, .prevbody canvas { max-width: 100%; height: auto; border-radius: 10px; border: 1.5px solid #dfe2f7; }
 .fileitem .eye { border: 1.5px solid #4f46e5; color: #312e81; background: #fff; border-radius: 7px; padding: 6px 8px; font-weight: 700; cursor: pointer; font-family: inherit; display: inline-flex; align-items: center; }
 .fileitem .eye svg { width: 16px; height: 16px; }
+.fileitem .frow .eye { margin-left: auto; } /* v3.15: eye neeche wali row mein bilkul right edge par - cross ke barabar (neeche) */
 
 /* file list */
 .fileitem { position: relative; border: 1.5px solid #dfe2f7; border-radius: 12px; padding: 8px; margin-top: 10px; background: #fff; font-size: 13px; line-height: 1.6; }
