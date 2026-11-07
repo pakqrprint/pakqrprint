@@ -121,7 +121,7 @@ function renderFiles() {
   var box = $('fileList'); box.innerHTML = '';
   selFiles.forEach(function (it, idx) {
     var d = document.createElement('div'); d.className = 'fileitem';
-    var h = '<div class="fname">' + esc(it.file.name) + '</div><div>' + esc(it.kind.toUpperCase()) + ' • ' + (it.file.size / 1024).toFixed(1) + ' KB • Pages: ';
+    var h = '<div class="fname">' + esc(it.file.name) + '<button type="button" class="x2" data-x="' + idx + '" title="Remove">✕</button></div><div>' + esc(it.kind.toUpperCase()) + ' • ' + (it.file.size / 1024).toFixed(1) + ' KB • Pages: ';
     h += '<input type="number" min="1" value="' + it.pages + '" data-pg="' + idx + '" style="width:64px"> ';
     h += it.pagesAuto ? '(auto-counted)' : '(you entered)';
     h += '</div>';
@@ -138,8 +138,7 @@ function renderFiles() {
       + [1, 2, 4, 6].map(function (n) { return '<option value="' + n + '"' + (it.nup === n ? ' selected' : '') + '>' + n + '</option>'; }).join('')
       + '</select>'
       + (it.kind === 'powerpoint' ? '<label>Slides/page:</label><select data-spp="' + idx + '">' + [1, 2, 4, 6, 9].map(function (n) { return '<option value="' + n + '"' + (it.spp === n ? ' selected' : '') + '>' + n + '</option>'; }).join('') + '</select>' : '')
-      + '<button type="button" class="eye" data-pv="' + idx + '" title="Preview">' + EYE_SVG + '</button>'
-      + '<button type="button" class="x" data-x="' + idx + '">Remove</button></div>';
+      + '<button type="button" class="eye" data-pv="' + idx + '" title="Preview">' + EYE_SVG + '</button></div>';
     d.innerHTML = h;
     box.appendChild(d);
   });

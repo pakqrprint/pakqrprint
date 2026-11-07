@@ -91,12 +91,13 @@ label.idphoto { display: flex; flex-direction: column; align-items: center; just
 .fileitem .eye svg { width: 16px; height: 16px; }
 
 /* file list */
-.fileitem { border: 1.5px solid #dfe2f7; border-radius: 12px; padding: 8px; margin-top: 10px; background: #fff; font-size: 13px; line-height: 1.6; }
-.fileitem .fname { font-weight: 800; color: #1e1b4b; word-break: break-word; }
+.fileitem { position: relative; border: 1.5px solid #dfe2f7; border-radius: 12px; padding: 8px; margin-top: 10px; background: #fff; font-size: 13px; line-height: 1.6; }
+.fileitem .fname { font-weight: 800; color: #1e1b4b; word-break: break-word; padding-right: 36px; }
 .fileitem .frow { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; align-items: center; }
 .fileitem .frow label { font-size: 12px; font-weight: 700; color: #5b5f8a; margin-bottom: 0; }
 .fileitem .frow input, .fileitem .frow select { width: auto; padding: 7px 8px; font-size: 13px; }
-.fileitem .x { border: 1.5px solid #c0392b; color: #922; background: #fff; border-radius: 7px; padding: 6px 10px; font-weight: 700; cursor: pointer; font-family: inherit; }
+.fileitem .x2 { position: absolute; top: 8px; right: 8px; width: 28px; height: 28px; border-radius: 8px; border: 1.5px solid #c0392b; color: #922; background: #fff; font-size: 14px; font-weight: 700; cursor: pointer; font-family: inherit; line-height: 1; display: flex; align-items: center; justify-content: center; }
+.fileitem input[type=number] { padding: 7px 8px; font-size: 13px; }
 
 .btn { display: block; width: 100%; padding: 16px; border: none; border-radius: 14px; background: linear-gradient(135deg, #4f46e5, #7c3aed); color: #fff; font-weight: 800; font-size: 17px; cursor: pointer; font-family: inherit; margin-top: 16px; box-shadow: 0 4px 14px rgba(79,70,229,.35); }
 .btn:disabled { opacity: .55; cursor: default; }
