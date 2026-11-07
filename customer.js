@@ -107,7 +107,7 @@ function officeAutoPages(file) {
     return null;
   }).catch(function () { return null; });
 }
-function rangeEligible(it) { return it.kind === 'pdf' || it.kind === 'word' || it.kind === 'excel'; }
+function rangeEligible(it) { return it.kind === 'pdf' || it.kind === 'word' || it.kind === 'excel' || it.kind === 'powerpoint'; } // v3.13: PPT range bhi (agent COM PrintOut From/To)
 function parseRange(str, total) {
   var s = String(str || '').trim();
   if (!s) return null;
