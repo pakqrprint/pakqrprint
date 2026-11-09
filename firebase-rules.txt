@@ -1,0 +1,66 @@
+// Pak QR Print - Firebase Rules (TEMPLATE - Firebase Console mein paste karein)
+// ============================================================================
+// 1) Realtime Database Rules (Firebase Console > Build > Realtime Database > Rules):
+//    Neeche wala JSON wahan paste karein aur Publish dabayein.
+//    Matlab: customer bina login ke order likh sakta hai aur settings parh
+//    sakta hai; settings BADALNA sirf login kiya hua shopkeeper kar sakta
+//    hai; orders parhna/likhna sab ko (customer + dashboard + print agent).
+//    Counter sirf order number ke liye hai.
+//    notifyTokens: dashboard app (PWA) apna FCM token yahan likhta hai
+//    (login ke baad), aur print agent yahan se token parh kar push
+//    bhejta hai; ghalat token ko agent yahan se delete bhi karta hai.
+//    Is liye read/write sirf login kiya hua (admin/agent) kar sakta hai.
+// ============================================================================
+{
+  "rules": {
+    "shops": {
+      "$shopId": {
+        "settings": {
+          ".read": true,
+          ".write": "auth != null"
+        },
+        "orders": {
+          ".read": true,
+          ".write": true
+        },
+        "counter": {
+          ".read": true,
+          ".write": true
+        },
+        "notifyTokens": {
+          ".read": "auth != null",
+          ".write": "auth != null"
+        }
+      }
+    }
+  }
+}
+
+// ============================================================================
+// 2) Storage Rules (Firebase Console > Build > Storage > Rules):
+//    Neeche wala text wahan paste karein aur Publish dabayein.
+//    Matlab: koi bhi customer apni file upload kar sakta hai (shops/...),
+//    aur koi bhi file download kar sakta hai (dashboard preview + agent).
+//    NOTE: Ye shuruati (open) rules hain - dukaan chhoti hai to theek
+//    hain. Baad mein sakht karna ho to Hidayat mein likha hai.
+// ============================================================================
+/*
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /shops/{shopId}/orders/{allPaths=**} {
+      allow read: if true;
+      allow write: if true;
+      allow delete: if request.auth != null;
+    }
+  }
+}
+*/
+
+// ============================================================================
+// 3) Authentication (Firebase Console > Build > Authentication):
+//    Sign-in method mein "Email/Password" ko ENABLE karein, phir
+//    Users mein dukaan ka account banayein (Add user):
+//    Email: apni dukaan ka email (masalan sohailabbasseo@gmail.com)
+//    Password: mazboot password (yehi dashboard login + agent ka hai).
+// ============================================================================
