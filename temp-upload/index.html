@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#4f46e5">
+<title>Pak QR Print — Send Files to Print</title>
+<link rel="stylesheet" href="styles.css">
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script src="firebase-config.js"></script>
+<script src="supabase-config.js"></script>
+<script src="customer.js"></script>
+</head>
+<body>
+<div class="hero">
+  <div class="hero-top">
+    <div class="pill"><img src="Pak-QR-Print-Logo-White.png" alt="Pak QR Print"></div>
+    <a class="login-btn" href="dashboard.html">🔐 Admin Login</a>
+  </div>
+  <h1>Print Documents Instantly</h1>
+  <div class="sub">Direct upload to Admin's Live Print Queue</div>
+</div>
+
+<div class="wrap cust">
+  <div class="err" id="setupErr"></div>
+  <div class="ok" id="setupOk"></div>
+
+  <div class="card" id="formBox">
+    <div class="ctabs" id="custTabs">
+      <button type="button" class="on" data-ctab="std">📄 Standard Documents</button>
+      <button type="button" data-ctab="idcard">🪪 ID Card 2-in-1</button>
+    </div>
+
+    <div id="stdBox">
+      <div>
+        <label>👤 Your Name (Optional)</label>
+        <input type="text" id="custName" placeholder="e.g. Ahmed, Ali, or leave blank">
+      </div>
+
+      <div class="row2">
+        <div>
+          <label>📋 Copies</label>
+          <input type="number" id="copiesInput" min="1" max="99" value="1">
+        </div>
+        <div>
+          <label>🎨 Print Mode</label>
+          <div class="seg" id="segPrintType">
+            <button type="button" class="on" data-v="BW">B&amp;W</button>
+            <button type="button" data-v="Colour">Color</button>
+          </div>
+          <input type="radio" name="printType" value="BW" checked style="display:none">
+          <input type="radio" name="printType" value="Colour" style="display:none">
+        </div>
+      </div>
+
+      <div style="margin-top:14px">
+        <label>📎 Select PDF or Image Files</label>
+        <div class="drop" id="dropZone">
+          <span class="cloud">☁</span>
+          <div class="dt">Tap to Choose Files</div>
+          <div class="ds">Supports PDF, Word, Excel, PowerPoint, JPG, PNG (Max 25MB per file)</div>
+        </div>
+        <input type="file" id="fileInput" multiple accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx,.ppt,.pptx" style="display:none">
+        <div id="fileList"></div>
+      </div>
+
+      <div class="row2">
+        <div>
+          <label>📄 Paper Size</label>
+          <select id="paperSel"><option value="a4">A4</option><option value="a5">A5</option><option value="letter">Letter</option><option value="legal">Legal</option><option value="a3">A3</option><option value="a2">A2</option><option value="a1">A1</option><option value="4x6">4x6 Photo</option></select>
+        </div>
+      </div>
+      <button class="btn" id="sendBtn" type="button" disabled>✈ Send Files to Admin</button>
+    </div>
+
+    <div id="idCardBox" style="display:none">
+      <div class="idinfo">🪪 <b>Single A4 ID Card Print Mode:</b> Upload both Front and Back sides of your ID Card. They will be automatically arranged onto 1 single A4 paper with cut guides.</div>
+      <div class="row2">
+        <div>
+          <label>ID Card Type</label>
+          <select id="idType">
+            <option>CNIC</option>
+            <option>Passport</option>
+            <option>Driving License</option>
+            <option>Student / College ID</option>
+            <option>Other ID Card</option>
+          </select>
+        </div>
+        <div>
+          <label>A4 Page Layout</label>
+          <div class="seg" id="segIdLayout">
+            <button type="button" class="on" data-v="stacked">↕ Stacked</button>
+            <button type="button" data-v="side">↔ Side-by-Side</button>
+          </div>
+        </div>
+      </div>
+      <div class="row2">
+        <div>
+          <label>1. Front Side Photo *</label>
+          <label class="idphoto" id="frontBox" for="idFront"><span class="cam">📷</span><b>Choose Front</b><small>JPG / PNG</small></label>
+          <input type="file" id="idFront" accept="image/*" style="display:none">
+        </div>
+        <div>
+          <label>2. Back Side Photo *</label>
+          <label class="idphoto" id="backBox" for="idBack"><span class="cam">📷</span><b>Choose Back</b><small>JPG / PNG</small></label>
+          <input type="file" id="idBack" accept="image/*" style="display:none">
+        </div>
+      </div>
+      <canvas id="idCardCanvas" width="794" height="1123" class="idprev" style="margin-top:12px;display:none"></canvas>
+      <button class="btn ghost" id="idMakeBtn" type="button" style="margin-top:12px">Make ID Card A4 Composite</button>
+      <div class="hint" id="idMsg">Choose both front and back, then tap "Make Composite".</div>
+      <button class="btn" id="idSendBtn" type="button">🪪 Send ID Card to Shop</button>
+    </div>
+  </div>
+
+  <div class="card success" id="successBox" style="display:none">
+    <h2>Files Sent Successfully!</h2>
+    <p>Your documents are now showing on the admin's screen.</p>
+    <div>Token</div>
+    <div class="tok" id="tokenNo">QP-1001</div>
+    <p class="hint">Remember your Token number — tell this number at the shop.</p>
+    <button class="btn ghost" id="againBtn" type="button">Send More Files</button>
+  </div>
+
+  <div style="display:flex;gap:10px;margin:16px 0 4px">
+    <button class="btn ghost small" id="webInstallBtn" type="button" style="display:none;flex:1;margin-top:0;text-align:center"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:5px"><path d="M12 3v12"/><path d="m6 11 6 6 6-6"/><path d="M4 21h16"/></svg>Install Browser App</button>
+    <a class="btn ghost small" href="PakQRPrint-App-v1.apk" download style="flex:1.4;margin-top:0;text-align:center;text-decoration:none"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:5px"><path d="M12 3v12"/><path d="m6 11 6 6 6-6"/><path d="M4 21h16"/></svg>Install APK</a>
+  </div>
+  <p class="hint" style="text-align:center;margin:0 0 10px 0">Ek dafa install karein — phir QR scan kiye baghair app se order bhejein.</p>
+
+  <p class="hint" style="text-align:center;margin:10px 0 4px">© 2026 Pak QR Print — All rights reserved.</p>
+  <p class="hint" style="text-align:center;margin:0 0 10px 0">Software developed by Sohail Abbas Marwat</p>
+</div>
+<script>
+// Print Mode seg buttons -> hidden radios
+(function () {
+  var box = document.getElementById('segPrintType');
+  if (!box) return;
+  box.querySelectorAll('button').forEach(function (b) {
+    b.addEventListener('click', function () {
+      box.querySelectorAll('button').forEach(function (x) { x.classList.remove('on'); });
+      b.classList.add('on');
+      var v = b.getAttribute('data-v');
+      document.querySelectorAll('input[name="printType"]').forEach(function (r) { r.checked = (r.value === v); });
+      var ev = new Event('change'); document.querySelector('input[name="printType"]:checked').dispatchEvent(ev);
+    });
+  });
+  var cp = document.getElementById('copiesInput');
+  if (cp) cp.addEventListener('change', function () {
+    var v = parseInt(cp.value, 10) || 1;
+    document.querySelectorAll('#fileList [data-cp]').forEach(function (el) { el.value = v; el.dispatchEvent(new Event('change')); });
+  });
+})();
+</script>
+<div class="prevmodal" id="prevModal" style="display:none">
+  <div class="prevbox">
+    <div class="prevhead"><b id="prevTitle">Preview</b><button type="button" id="prevClose">✕</button></div>
+    <div class="prevbody" id="prevBody"></div>
+  </div>
+</div>
+<script>
+// App install: web install button + service worker (needed for the install prompt)
+(function () {
+  if ('serviceWorker' in navigator) { navigator.serviceWorker.register('sw.js').catch(function () {}); }
+  var btn = document.getElementById('webInstallBtn');
+  var deferred = null;
+  window.addEventListener('beforeinstallprompt', function (e) {
+    e.preventDefault();
+    deferred = e;
+    if (btn) btn.style.display = '';
+  });
+  if (btn) btn.addEventListener('click', function () {
+    if (!deferred) return;
+    deferred.prompt();
+    deferred.userChoice.then(function () { deferred = null; btn.style.display = 'none'; });
+  });
+})();
+</script>
+</body>
+</html>
