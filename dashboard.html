@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="ur">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pak QR Print — Admin Dashboard</title>
+<link rel="stylesheet" href="styles.css">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#4f46e5">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging-compat.js"></script>
+<script src="firebase-config.js"></script>
+<script src="supabase-config.js"></script>
+<script src="qr.js"></script>
+<script src="dashboard.js"></script>
+</head>
+<body>
+<header class="topbar">
+  <img class="brandlogo" src="Pak-QR-Print-Logo.png" alt="Pak QR Print">
+  <div class="brandtxt"><small>pakqrprint.github.io</small></div>
+  <div class="spacer"></div>
+  <button type="button" class="tbtn" id="homeBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h5v-6h4v6h5V9.5"/></svg>Home Page</button>
+  <button type="button" class="tbtn danger" id="logoutBtn" style="display:none"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>Logout</button>
+</header>
+
+<div class="wrap dash">
+  <div class="err" id="setupErr"></div>
+
+  <div class="card portal" id="authBox">
+    <h2 class="ptitle">Admin Portal</h2>
+    <p class="psub">Login or create an account to manage your live print queue</p>
+    <div class="ptabs" id="portalTabs">
+      <button type="button" class="on" data-ptab="login">➜ Admin Login</button>
+      <button type="button" data-ptab="create">👤+ Create Account</button>
+    </div>
+
+    <div id="portalLogin">
+      <form id="loginForm" action="#">
+      <div class="fld">
+        <label>Email, Shop Slug or Username</label>
+        <div class="inp"><span>✉</span><input type="email" id="loginEmail" placeholder="Enter your registered email or shop name" autocomplete="username"></div>
+      </div>
+      <div class="fld">
+        <label>Password</label>
+        <div class="inp"><span>🔒</span><input type="password" id="loginPass" placeholder="Enter your password" autocomplete="current-password"><button type="button" class="eyebtn" data-eye="loginPass" title="Show password"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17a5 5 0 1 1 0-10 5 5 0 0 1 0 10zm0-8a3 3 0 1 0 0 6 3 3 0 0 0 0-6z"/></svg></button></div>
+      </div>
+      <label class="rem"><input type="checkbox" id="rememberMe"> Remember me</label>
+      <button class="btn" id="loginBtn" type="submit">➜ Login to Dashboard</button>
+      <p class="hint" id="loginMsg" style="margin-top:10px"></p>
+      </form>
+    </div>
+
+    <div id="portalCreate" style="display:none">
+      <form id="createForm" action="#">
+      <div class="fld">
+        <label>Your Name</label>
+        <div class="inp"><span>👤</span><input type="text" id="createName" placeholder="e.g. Ahmed Abbas"></div>
+      </div>
+      <div class="fld">
+        <label>Print Shop / Cyber Cafe Name</label>
+        <div class="inp"><input type="text" id="createShop" placeholder="e.g. Pak QR Print"></div>
+      </div>
+      <div class="fld">
+        <label>Email Address</label>
+        <div class="inp"><span>✉</span><input type="email" id="createEmail" placeholder="e.g. shop@gmail.com"></div>
+      </div>
+      <div class="fld">
+        <label>Mobile Number (Optional)</label>
+        <div class="inp"><span>📞</span><input type="tel" id="createMobile" placeholder="e.g. 03123456789"></div>
+      </div>
+      <div class="fld">
+        <label>Create Password</label>
+        <div class="inp"><span>🔒</span><input type="password" id="createPass" placeholder="Choose a secure password" autocomplete="new-password"><button type="button" class="eyebtn" data-eye="createPass" title="Show password"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17a5 5 0 1 1 0-10 5 5 0 0 1 0 10zm0-8a3 3 0 1 0 0 6 3 3 0 0 0 0-6z"/></svg></button></div>
+      </div>
+      <button class="btn" id="createBtn" type="submit">👤+ Create Account &amp; Open Dashboard</button>
+      <p class="hint" id="createMsg" style="margin-top:10px"></p>
+      </form>
+    </div>
+  </div>
+
+  <div id="dashBox" style="display:none">
+    <div class="card">
+      <div class="shoprow">
+        <span class="hub-live"><span class="dot">●</span> Live Counter Queue Active</span>
+        <span class="agent-pill off" id="agentPill"><span class="dot">●</span> <span id="agentPillTxt">Agent Offline</span></span>
+      </div>
+      <p class="agent-last" id="agentLast">Last seen — agent is off on the PC</p>
+      <div class="hubbtns">
+        <button type="button" class="primary" id="duBtn">☁ + Direct Upload File</button>
+        <button type="button" id="copyLinkBtn">⧉ Copy Customer Link</button>
+        <button type="button" id="qrBtn">▦ View / Download QR</button>
+        <button type="button" id="posterBtn">🖨 QR Poster (A4)</button>
+      </div>
+      <input type="file" id="duInput" multiple accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx,.ppt,.pptx" style="display:none">
+    </div>
+
+    <div class="card">
+      <div class="hubtog"><span>Auto-Open Layout</span><label class="switch"><input type="checkbox" id="togAutoOpen"><span class="sl"></span></label></div>
+      <div class="hubtog"><span>Auto-Print Mode</span><label class="switch"><input type="checkbox" id="togAutoPrint"><span class="sl"></span></label></div>
+      <div class="hubtog"><span>Permission Mode</span><label class="switch"><input type="checkbox" id="togPerm"><span class="sl"></span></label></div>
+      <div class="hubtog"><span>↻ Auto-Delete</span><select id="selAutoDel"><option value="0">Off</option><option value="1">1 Minute</option><option value="5">5 Minutes</option><option value="15">15 Minutes</option></select></div>
+      <div class="hubtog"><span>🔔 Order Notifications</span><button type="button" class="btn small ghost" id="notifyBtn" style="display:none">Allow</button></div>
+      <p class="hint" id="notifyHint" style="margin:6px 2px 0"></p>
+      <button class="clearbtn" id="clearBtn" type="button">🧹 Clear Completed Jobs</button>
+    </div>
+
+    <div class="stats">
+      <div class="stat"><span class="sic purple">👥</span><span><b id="stWalkin">0</b><i>Walk-in Customers</i></span></div>
+      <div class="stat"><span class="sic amber">⏳</span><span><b id="stPending">0</b><i>Pending Files</i></span></div>
+      <div class="stat"><span class="sic green">✅</span><span><b id="stPrinted">0</b><i>Printed Files</i></span></div>
+      <div class="stat"><span class="sic red">❌</span><span><b id="stFailed">0</b><i>Rejected / Failed</i></span></div>
+    </div>
+
+    <div class="card">
+      <div class="qhead2">
+        <h2><span class="lay">▦</span>Live Document Print Queue</h2>
+        <button class="btn small ghost" id="refreshBtn" type="button">↻ Refresh</button>
+      </div>
+      <div id="queueList"></div>
+    </div>
+
+    <div class="card">
+      <h2>Settings</h2>
+      <div class="row2">
+        <div><label>Shop Name</label><input type="text" id="setShopName" value="Pak QR Print"></div>
+        <div><label>Printer Name (on PC)</label><input type="text" id="setPrinter" placeholder="Default printer (leave blank)"></div>
+      </div>
+      <button class="btn" id="saveSetBtn" type="button">Save Settings</button>
+      <p class="hint" style="margin-top:10px">Printer: the print agent must be running on the shop PC (see the print-agent folder). Type the printer name exactly as it is in Windows — leave blank to use the default printer.</p>
+    </div>
+  </div>
+
+  <p class="hint" style="text-align:center;margin:10px 0">Software developed by Sohail Abbas Marwat</p>
+</div>
+
+<div class="qrmodal" id="qrModal" style="display:none">
+  <div class="qrbox">
+    <div class="qrtitle"><span>📄 Shop Counter QR Code</span><button type="button" id="qrCloseBtn">✕</button></div>
+    <p class="hint" style="margin:8px 0 0">Display this at your counter so customers can scan &amp; send files.</p>
+    <div class="qrinner">
+      <b id="qrShopName">Pak QR Print</b>
+      <canvas id="qrModalCanvas" width="240" height="240"></canvas>
+      <span class="hint">Scan with phone camera to upload</span>
+    </div>
+    <div class="qrbtns">
+      <button type="button" class="btn" id="qrDownloadBtn">⬇ Download QR PNG</button>
+      <button type="button" class="btn ghost" id="qrPrintBtn">🖨 Print A4 Poster</button>
+    </div>
+  </div>
+</div>
+
+<div class="a4modal" id="a4Modal" style="display:none">
+  <div class="a4box">
+    <div class="a4head">
+      <h2 id="a4Title" style="margin:0">Preview</h2>
+      <div class="a4headbtns">
+        <button type="button" class="primary" id="a4PrintBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>Print Now</button>
+        <button type="button" id="a4CloseBtn">✕</button>
+      </div>
+    </div>
+    <p class="hint" id="a4Meta" style="margin:6px 0 0"></p>
+    <div class="a4sheet"><div id="a4Content" style="width:100%;text-align:center"></div></div>
+    <div class="a4tools">
+      <button type="button" id="a4ZoomIn">Zoom +</button>
+      <button type="button" id="a4ZoomOut">Zoom −</button>
+      <button type="button" id="a4Rotate">Rotate</button>
+      <button type="button" id="a4ViewBtn">View File</button>
+      <button type="button" id="a4BrowserBtn">Browser Print</button>
+    </div>
+    <p class="hint" style="margin-top:8px">Tapping "Print Now" sends the order to the print agent on the shop PC — the PC must be on, internet must be on, and the printer must be connected. "Browser Print" prints PDF and photo files straight from this browser (no agent needed); Word, Excel and PowerPoint still need the agent.</p>
+  </div>
+</div>
+<script>
+// Logout button sirf login ke baad dikhayein
+(function () {
+  var t = setInterval(function () {
+    if (document.getElementById('dashBox').style.display === 'block') {
+      document.getElementById('logoutBtn').style.display = '';
+      clearInterval(t);
+    }
+  }, 500);
+})();
+</script>
+<div class="dashinstall">
+<a class="btn small" href="PakQRPrint-App-v1.apk" download style="width:auto;margin:0;text-decoration:none"><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" style="vertical-align:-2px;margin-right:5px"><path d="M17.6 9.48l1.84-3.18c.16-.31.04-.69-.26-.85-.29-.15-.65-.06-.83.22l-1.88 3.24c-1.4-.6-2.98-.93-4.66-.93s-3.26.33-4.66.93L5.27 5.67c-.18-.29-.54-.38-.83-.22-.3.16-.42.54-.26.85L6.02 9.48C3.6 11.15 2 13.63 2 16.43h20c0-2.8-1.6-5.28-4-6.95zM7 15.25c-.69 0-1.25-.56-1.25-1.25s.56-1.25 1.25-1.25 1.25.56 1.25 1.25-.56 1.25-1.25 1.25zm10 0c-.69 0-1.25-.56-1.25-1.25s.56-1.25 1.25-1.25 1.25.56 1.25 1.25-.56 1.25-1.25 1.25z"/></svg>Install APK</a>
+<button type="button" class="btn small" id="pwaInstallBtn" style="display:none;width:auto;margin:0"><svg width="14" height="14" viewBox="0 0 24 24" style="vertical-align:-2px;margin-right:5px"><path fill="#EA4335" d="M12 12 L12 2 A10 10 0 0 1 20.66 17 Z"/><path fill="#FBBC05" d="M12 12 L20.66 17 A10 10 0 0,1 3.34 17 Z"/><path fill="#34A853" d="M12 12 L3.34 17 A10 10 0 0,1 12 2 Z"/><circle cx="12" cy="12" r="5.2" fill="#fff"/><circle cx="12" cy="12" r="4.1" fill="#4285F4"/></svg>Install Browser App</button>
+<a class="btn small" href="https://jdenvuhnvnpgydkpoyie.supabase.co/storage/v1/object/public/pakqrprint-files/downloads/PakQRPrint-Agent-Setup.exe" download style="width:auto;margin:0;text-decoration:none"><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" style="vertical-align:-2px;margin-right:5px"><path d="M3 5.2 10.8 4.2v7.3H3z"/><path d="M11.8 4 21 2.8v8.7h-9.2z"/><path d="M3 12.5h7.8v7.3L3 18.8z"/><path d="M11.8 12.5H21V21l-9.2-1.2z"/></svg>Install Agent</a>
+</div>
+<script>
+// PWA v1: service worker + install prompt (dashboard ka design/function waisa hi)
+(function () {
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function () {
+      navigator.serviceWorker.register('sw.js').catch(function () {});
+    });
+  }
+  var deferredPrompt = null;
+  var btn = document.getElementById('pwaInstallBtn');
+  window.addEventListener('beforeinstallprompt', function (e) {
+    e.preventDefault();
+    deferredPrompt = e;
+  });
+  // Button hamesha nazar aaye — prompt na aaye to menu se install ka tareeqa batayein
+  if (btn) {
+    btn.style.display = '';
+    btn.addEventListener('click', function () {
+      if (!deferredPrompt) { alert('Browser ke menu (⋮) se "Install app" dabayein — ya APK wala button use karein.'); return; }
+      deferredPrompt.prompt();
+      deferredPrompt.userChoice.then(function () {
+        deferredPrompt = null;
+        if (btn) btn.style.display = 'none';
+      }).catch(function () {});
+    });
+  }
+  window.addEventListener('appinstalled', function () {
+    if (btn) btn.style.display = 'none';
+  });
+})();
+</script>
+<script>
+// PWA v2: FCM push — naya order aaye to phone par notification (naam/Token ke sath).
+// VAPID key bhari hui hai (Firebase Console, Cloud Messaging). configured()
+// PLACEHOLDER se milata hai — asal key se nahi — warna button hamesha chhupa rehta hai.
+// Token RTDB mein jata hai: shops/pakqrprint/notifyTokens (agent wahan se padhta hai).
+// Dashboard khula ho to order waise hi live queue mein dikhta hai — is liye
+// foreground message par koi notification nahi (double notify nahi hoti).
+(function () {
+  var VAPID_KEY = 'BCeSWfFG5vB_o7FsmdSfflVQzCT-4lHEiPYZnDYiFPi1zEEZP-NW6qnDKDUp5WWAkKtmgD3_uadAGTjZk_jRapw';
+  var TOKENS_PATH = 'shops/' + (window.PAKQR_SHOP_ID || 'pakqrprint') + '/notifyTokens';
+  var ASKED_KEY = 'pakqr_notify_asked';
+  var btn = document.getElementById('notifyBtn');
+  var hint = document.getElementById('notifyHint');
+  function setHint(t) { if (hint) hint.textContent = t || ''; }
+  function showBtn(t) { if (btn) { btn.textContent = t; btn.style.display = ''; } }
+  function hideBtn() { if (btn) btn.style.display = 'none'; }
+  function configured() { return VAPID_KEY && VAPID_KEY !== '__FCM_VAPID_KEY__'; }
+  function supported() {
+    return ('Notification' in window) && ('serviceWorker' in navigator) &&
+      typeof firebase !== 'undefined' && firebase.messaging &&
+      firebase.apps && firebase.apps.length;
+  }
+  function saveToken() {
+    if (!supported() || !configured()) return Promise.resolve(false);
+    return navigator.serviceWorker.ready.then(function (reg) {
+      return firebase.messaging().getToken({ vapidKey: VAPID_KEY, serviceWorkerRegistration: reg });
+    }).then(function (tok) {
+      if (!tok) return false;
+      var ref = firebase.database().ref(TOKENS_PATH);
+      return ref.once('value').then(function (snap) {
+        var exists = false;
+        snap.forEach(function (ch) { if (ch.val() && ch.val().token === tok) exists = true; });
+        if (exists) return true;
+        return ref.push({ token: tok, platform: 'web', createdAt: Date.now() }).then(function () { return true; });
+      });
+    }).catch(function () { return false; });
+  }
+  function initNotify() {
+    if (!supported()) { hideBtn(); return; }
+    if (!configured()) { hideBtn(); setHint('Notifications setup baqi hai (VAPID key).'); return; }
+    if (Notification.permission === 'granted') {
+      hideBtn(); setHint('Notifications on hain ✓');
+      saveToken();
+      try { firebase.messaging().onTokenRefresh(function () { saveToken(); }); } catch (e) {}
+      return;
+    }
+    if (Notification.permission === 'denied') {
+      hideBtn(); setHint('Notifications blocked hain — browser settings se allow karein.');
+      return;
+    }
+    // permission 'default' — aik dafa poochein, phir yaad rakhein (nag nahi karte)
+    if (window.localStorage && localStorage.getItem(ASKED_KEY)) { hideBtn(); return; }
+    showBtn('Allow');
+  }
+  if (btn) btn.addEventListener('click', function () {
+    if (!supported() || !configured()) return;
+    try { if (window.localStorage) localStorage.setItem(ASKED_KEY, '1'); } catch (e) {}
+    Notification.requestPermission().then(function (perm) {
+      if (perm === 'granted') {
+        hideBtn(); setHint('Notifications on hain ✓');
+        saveToken();
+      } else {
+        hideBtn(); setHint('Notifications blocked hain — browser settings se allow karein.');
+      }
+    }).catch(function () {});
+  });
+  // Login ke baad hi dikhana hai (dashBox tab 'block' hota hai) — logout wale pattern jaisa
+  var t = setInterval(function () {
+    var box = document.getElementById('dashBox');
+    if (box && box.style.display === 'block') { clearInterval(t); initNotify(); }
+  }, 500);
+})();
+</script>
+</body>
+</html>
